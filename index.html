@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Cinder Technology</title>
+<meta name="description" content="Cloud Cinder Technology develops and publishes apps and games from Malaysia.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f7f9fc;
+    --card: #ffffff;
+    --ink: #1d2433;
+    --muted: #5b6577;
+    --line: #e3e8f0;
+    --accent: #e0702f;
+    --accent-soft: #fdf0e7;
+    --sky: #eaf3fb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+  header { padding: 22px 0; }
+  header .wrap { display: flex; align-items: center; gap: 12px; }
+  header img { width: 36px; height: 36px; }
+  header strong { font-size: 18px; letter-spacing: 0.2px; }
+
+  .hero {
+    background: linear-gradient(180deg, var(--sky), var(--bg));
+    padding: 64px 0 56px;
+  }
+  .hero h1 { font-size: 40px; line-height: 1.2; margin: 0 0 14px; }
+  .hero p { font-size: 18px; color: var(--muted); max-width: 620px; margin: 0; }
+
+  section { padding: 40px 0; }
+  h2 { font-size: 24px; margin: 0 0 18px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .app { display: flex; gap: 20px; align-items: flex-start; }
+  .app .icon {
+    flex: none; width: 64px; height: 64px; border-radius: 14px;
+    background: var(--accent-soft); display: grid; place-items: center;
+    font-size: 30px;
+  }
+  .app h3 { margin: 0 0 6px; font-size: 20px; }
+  .app p { margin: 0 0 12px; color: var(--muted); }
+  .tag {
+    display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 99px;
+    background: var(--accent-soft); color: #9a4612;
+  }
+  .links a { margin-right: 16px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .grid .card p { margin: 0; color: var(--muted); }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+  footer p { margin: 4px 0; }
+
+  @media (max-width: 640px) {
+    .hero { padding: 44px 0 40px; }
+    .hero h1 { font-size: 30px; }
+    .grid { grid-template-columns: 1fr; }
+    .app { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <img src="favicon.svg" alt="">
+    <strong>Cloud Cinder Technology</strong>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Apps and games, made in Malaysia.</h1>
+    <p>Cloud Cinder Technology is a small studio that develops and publishes mobile apps,
+      PC games and software tools, sold through Google Play, Steam and other online stores.</p>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section id="apps">
+    <h2>Our apps</h2>
+    <div class="card app">
+      <div class="icon" aria-hidden="true">文</div>
+      <div>
+        <h3>Translator Pro</h3>
+        <p>A translator for text, voice, the camera and your screen, working on your phone.</p>
+        <p><span class="tag">Coming soon to Google Play</span></p>
+        <p class="links">
+          <a href="https://jeffreytan120.github.io/privacy">Privacy Policy</a>
+          <a href="https://jeffreytan120.github.io/privacy-ms">Dasar Privasi</a>
+          <a href="https://jeffreytan120.github.io/terms">Terms of Use</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>About us</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>What we do</h3>
+        <p>Development and publishing of software: mobile applications, PC and console games,
+          web applications and tools.</p>
+      </div>
+      <div class="card">
+        <h3>Where we are</h3>
+        <p>Subang Jaya, Selangor, Malaysia. A business registered with the
+          Companies Commission of Malaysia (SSM).</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <div class="card">
+      <p style="margin:0">Questions, support or business enquiries:
+        <a href="mailto:cosmicbunny880@gmail.com">cosmicbunny880@gmail.com</a></p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>&copy; 2026 Cloud Cinder Technology. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>
