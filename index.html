@@ -301,10 +301,13 @@
   // underside, light through the thin edges); it sits in the box's own camera, so it turns with the box. Rendered
   // once per frame into a small canvas, then copied into the scene (and flipped for the floor). Without WebGL
   // the page falls back to cloud.png, a picture.
-  // The shape is a pile of lobes (overlapping spheres: five big ones along the base, five in the middle, four small
-  // on top), so the silhouette has bumps and the light can shadow the creases between them; noise only fluffs the
-  // surface of the lobes and nibbles the edges. Each sample walks a few steps toward the lamp through the pile
-  // and darkens by what is in the way; thin parts let light through.
+  // The cloud, the way games draw one (the "Nubis" recipe): a pile of lobes gives the coverage (five big spheres
+  // along the base, five in the middle, four small on top); inside it a Perlin-Worley noise shapes the billows and
+  // three octaves of Worley noise erode the edges into cauliflower fluff, so the core stays solid and the skin is
+  // feathered. Light: six expanding steps toward the lamp (Beer's law), a powder term for the bright sugar edges,
+  // a Henyey-Greenstein phase for the silver lining, and a three-octave multiple-scattering sum so the shaded parts
+  // stay luminous grey. The noise is a 64^3 texture built on load, so this needs WebGL2; without it the page shows
+  // cloud.png, a picture.
   var RADII = [0.38, 0.24, 0.28], NLOBE = 14, lobes = [];
   (function () {
     var r = seeded(11), i, a;
@@ -312,47 +315,93 @@
     for (i = 0; i < 5; i++) { a = -0.22 + i * 0.11; lobes.push([a + (r() - 0.5) * 0.04, 0.02 + r() * 0.04, (r() - 0.5) * 0.1, 0.12 + r() * 0.03]); }
     for (i = 0; i < 4; i++) { a = -0.14 + i * 0.1; lobes.push([a + (r() - 0.5) * 0.05, 0.1 + r() * 0.06 + (i === 1 ? 0.04 : 0), (r() - 0.5) * 0.08, 0.09 + r() * 0.03]); }
   })();
-  var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+  function makeNoise() {                                // 64^3 RGBA: R Perlin-Worley, G B A Worley at 4, 8, 16 cells; all tile
+    var N = 64, data = new Uint8Array(N * N * N * 4), r = seeded(5), i, x, y, z;
+    function worley(f) {
+      var pts = [];
+      for (i = 0; i < f * f * f * 3; i++) pts.push(r());
+      return function (u, v, w) {
+        var cx = Math.floor(u * f), cy = Math.floor(v * f), cz = Math.floor(w * f), md = 9, dx, dy, dz;
+        for (dz = -1; dz <= 1; dz++) for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) {
+          var ix = (cx + dx + f) % f, iy = (cy + dy + f) % f, iz = (cz + dz + f) % f, k = ((iz * f + iy) * f + ix) * 3;
+          var px = (cx + dx + pts[k]) / f - u, py = (cy + dy + pts[k + 1]) / f - v, pz = (cz + dz + pts[k + 2]) / f - w, d = px * px + py * py + pz * pz;
+          if (d < md) md = d;
+        }
+        return 1 - Math.min(1, Math.sqrt(md) * f);       // 1 at a feature point, 0 a cell away
+      };
+    }
+    var perm = [];
+    for (i = 0; i < 256; i++) perm.push(i);
+    for (i = 255; i > 0; i--) { var j = Math.floor(r() * (i + 1)), tmp = perm[i]; perm[i] = perm[j]; perm[j] = tmp; }
+    var G = [[1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0], [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1], [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]];
+    function perlin(f) {
+      function g(ix, iy, iz) { return G[perm[(perm[(perm[ix % f] + iy % f) & 255] + iz % f) & 255] % 12]; }
+      function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+      return function (u, v, w) {
+        u *= f; v *= f; w *= f;
+        var ix = Math.floor(u), iy = Math.floor(v), iz = Math.floor(w), fx = u - ix, fy = v - iy, fz = w - iz, s = fade(fx), t = fade(fy), q = fade(fz), c = [];
+        for (var k = 0; k < 8; k++) { var ox = k & 1, oy = (k >> 1) & 1, oz = k >> 2, gr = g(ix + ox, iy + oy, iz + oz); c.push(gr[0] * (fx - ox) + gr[1] * (fy - oy) + gr[2] * (fz - oz)); }
+        var a = c[0] + (c[1] - c[0]) * s, b = c[2] + (c[3] - c[2]) * s, cc = c[4] + (c[5] - c[4]) * s, d = c[6] + (c[7] - c[6]) * s;
+        return ((a + (b - a) * t) + ((cc + (d - cc) * t) - (a + (b - a) * t)) * q) * 0.7 + 0.5;
+      };
+    }
+    var w4 = worley(4), w8 = worley(8), w16 = worley(16), w32 = worley(32), p4 = perlin(4), p8 = perlin(8), p16 = perlin(16);
+    function remap(v, a, b) { return Math.min(1, Math.max(0, (v - a) / (b - a))); }
+    for (z = 0; z < N; z++) for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
+      var u = (x + 0.5) / N, v = (y + 0.5) / N, w = (z + 0.5) / N, o = ((z * N + y) * N + x) * 4;
+      var pf = remap(p4(u, v, w) * 0.57 + p8(u, v, w) * 0.29 + p16(u, v, w) * 0.14, 0.3, 0.7);
+      var wf = w4(u, v, w) * 0.625 + w8(u, v, w) * 0.25 + w16(u, v, w) * 0.125;
+      data[o] = remap(remap(pf, -(1 - wf), 1), 0.35, 0.9) * 255;   // Perlin-Worley: billows with Worley hollows, stretched
+      data[o + 1] = w8(u, v, w) * 255; data[o + 2] = w16(u, v, w) * 255; data[o + 3] = w32(u, v, w) * 255;
+    }
+    return data;
+  }
+  var VS = '#version 300 es\nin vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
   var FS = [
-    'precision highp float;',
-    'uniform vec2 uRes,uOrigin;uniform float uTime,uYaw,uPitch,uS,uD,uScale,uDark,uWarm,uFlash,uOy;uniform vec3 uRadii;',
-    'uniform vec4 uLobe[' + NLOBE + '];',
+    '#version 300 es', 'precision highp float;precision highp sampler3D;out vec4 o;',
+    'uniform vec2 uRes,uOrigin;uniform float uTime,uYaw,uPitch,uS,uD,uScale,uDark,uWarm,uFlash,uOy,uSteps,uDebug;uniform vec3 uRadii;',
+    'uniform vec4 uLobe[' + NLOBE + '];uniform sampler3D uNoise;',
     'float hash(vec3 p){p=fract(p*.3183099+vec3(.1,.2,.3));p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}',
-    'float noise(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);',
-    ' return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),',
-    '  mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}',
-    'float fbm(vec3 p){float v=0.,a=.5;for(int i=0;i<3;i++){v+=a*noise(p);p=p*2.2+vec3(1.7,9.2,3.1);a*=.5;}return v;}',
-    'float pile(vec3 p){float s=0.;',                                        // 1 inside a lobe, falling to 0 past its skin
-    ' for(int i=0;i<' + NLOBE + ';i++){vec4 l=uLobe[i];float d=length(p-l.xyz)/l.w;s+=1.-smoothstep(.55,1.05,d);}',
+    'float remap(float v,float a,float b){return clamp((v-a)/max(b-a,1e-4),0.,1.);}',
+    'float pile(vec3 p){float s=0.;',                                        // 1 inside a lobe, 0 past its skin, more where lobes overlap
+    ' for(int i=0;i<' + NLOBE + ';i++){vec4 l=uLobe[i];float d=length(p-l.xyz)/l.w;s+=1.-smoothstep(.7,1.1,d);}',
     ' return s;}',
-    'float density(vec3 p){float s=pile(p);if(s<.03)return 0.;',
-    ' vec3 w=vec3(uTime*.02,uTime*.008,uTime*.015);',
-    ' float big=fbm(p*5.+w)-.5,fine=fbm(p*15.+w*1.4)-.5;',
-    ' float edge=1.-clamp(s,0.,1.);',                                        // erosion works on the skin, not the solid core
-    ' float d=smoothstep(.22,.75,s+big*.7+fine*.45*edge+.05);',
-    ' return d*(1.+.5*uDark);}',
+    'float density(vec3 p,bool fine){float s=pile(p);if(s<.02)return 0.;',
+    ' float cov=clamp(s*.62,0.,1.);',                                        // coverage: solid deep inside, thin over the skin
+    ' vec3 w=vec3(uTime*.012,-uTime*.004,uTime*.008);',
+    ' vec4 n=texture(uNoise,p*1.3+w);float wf=n.g*.625+n.b*.25+n.a*.125;',
+    ' float shape=remap(remap(n.r,-(1.-wf),1.),.3,1.)*.7+.3;',               // billows, with contrast, never hollow
+    ' float base=remap(shape,1.-cov,1.);',
+    ' if(base<=0.)return 0.;',
+    ' if(fine){vec4 d=texture(uNoise,p*4.5+w*2.5);float df=d.g*.625+d.b*.25+d.a*.125;',   // the edges eroded into fluff
+    '  float erode=mix(df,1.-df,clamp(base*3.,0.,1.))*.45*(1.-cov);base=remap(base,erode,1.);}',
+    ' return base*(1.+.5*uDark);}',
     'vec3 inv(vec3 v){float ca=cos(uYaw),sa=sin(uYaw),cb=cos(uPitch),sb=sin(uPitch);',
     ' float y=v.y*cb-v.z*sb,z1=v.y*sb+v.z*cb;return vec3(v.x*ca-z1*sa,y,v.x*sa+z1*ca);}',
+    'float hg(float c,float g){return (1.-g*g)/(12.566*pow(1.+g*g-2.*g*c,1.5));}',
     'void main(){vec2 sp=uOrigin+vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y)*uScale;',
-    ' vec3 d=normalize(inv(vec3(sp.x/(uS*uD),-sp.y/(uS*uD),1.)));vec3 o=inv(vec3(0.,0.,-uD));',
-    ' vec3 os=(o-vec3(0.,uOy,0.))/uRadii,ds=d/uRadii;float A=dot(ds,ds),B=dot(os,ds),C=dot(os,os)-2.6;float h=B*B-A*C;',   // a loose bound
+    ' vec3 d=normalize(inv(vec3(sp.x/(uS*uD),-sp.y/(uS*uD),1.)));vec3 ro=inv(vec3(0.,0.,-uD));',
+    ' vec3 os=(ro-vec3(0.,uOy,0.))/uRadii,ds=d/uRadii;float A=dot(ds,ds),B=dot(os,ds),C=dot(os,os)-2.6;float h=B*B-A*C;',
     ' if(h<0.)discard;h=sqrt(h);float t0=(-B-h)/A,t1=(-B+h)/A;',
-    ' vec3 L=normalize(vec3(-.2,1.,-.55));',
-    ' vec3 lightCol=mix(vec3(1.),vec3(1.,.88,.68),uWarm)*(1.+.6*uWarm+2.*uFlash)*(1.-.45*uDark);',
-    ' vec3 ambTop=mix(vec3(.3,.34,.4),vec3(.42,.35,.26),uWarm)*(1.-.5*uDark);',
-    ' vec3 ambBot=mix(vec3(.13,.15,.2),vec3(.18,.14,.11),uWarm)*(1.-.5*uDark);',
-    ' float T=1.;vec3 col=vec3(0.);float dt=(t1-t0)/72.;float t=t0+dt*hash(vec3(gl_FragCoord.xy,uTime));',
-    ' for(int i=0;i<72;i++){vec3 p=o+d*t;float den=density(p);',
-    '  if(den>.003){float sh=0.;for(int j=1;j<=4;j++)sh+=density(p+L*.045*float(j));',   // what is between here and the lamp
-    '   float lit=exp(-sh*1.3)*(.2+.8*exp(-sh*.4));',
-    '   float hgt=clamp((p.y-uOy+.12)/.34,0.,1.);float ao=1.-.35*clamp(pile(p)-1.,0.,1.);',   // creases and the core sit deeper
-    '   vec3 amb=mix(ambBot,ambTop,hgt)*ao;',
-    '   float powder=1.-.5*exp(-den*4.);',
-    '   vec3 s=(lightCol*lit*.72+amb)*powder;float al=1.-exp(-den*dt*55.);',
-    '   col+=T*al*s;T*=1.-al;if(T<.015)break;}',
+    ' if(uDebug>.5){vec4 n=texture(uNoise,(ro+d*(t0+.35))*1.3);o=vec4(n.rgb,1.);return;}',
+    ' vec3 L=normalize(vec3(-.2,1.,-.55));float cosv=dot(d,L);',
+    ' vec3 lightCol=mix(vec3(1.),vec3(1.,.86,.62),uWarm)*(1.+.7*uWarm+2.*uFlash)*(1.-.5*uDark);',
+    ' vec3 ambTop=mix(vec3(.34,.38,.46),vec3(.5,.4,.3),uWarm)*(1.-.5*uDark);',
+    ' vec3 ambBot=mix(vec3(.1,.12,.17),vec3(.16,.12,.09),uWarm)*(1.-.5*uDark);',
+    ' float steps=uSteps;float T=1.;vec3 col=vec3(0.);float dt=(t1-t0)/steps;float t=t0+dt*hash(vec3(gl_FragCoord.xy,uTime));',
+    ' for(int i=0;i<128;i++){if(float(i)>=steps)break;vec3 p=ro+d*t;float den=density(p,true);',
+    '  if(den>.003){',
+    '   float sh=0.,st=.018;vec3 q=p;for(int j=0;j<6;j++){q+=L*st;sh+=density(q,false)*st;st*=1.45;}',   // optical depth toward the lamp
+    '   float ms=0.;float a=1.,b=1.,c=1.;',                                 // multiple scattering: three octaves
+    '   for(int k=0;k<3;k++){ms+=a*exp(-sh*b*38.)*mix(hg(cosv,.55*c),hg(cosv,-.15),.4);a*=.5;b*=.45;c*=.6;}',
+    '   float powder=1.-exp(-den*3.5);',
+    '   float hgt=clamp((p.y-uOy+.12)/.34,0.,1.);float ao=exp(-pile(p)*.45);',
+    '   vec3 amb=mix(ambBot,ambTop,hgt)*(.5+.5*ao);',
+    '   vec3 s=lightCol*ms*5.5*mix(powder,1.,.45)+amb;',
+    '   float al=1.-exp(-den*dt*60.);col+=T*al*s;T*=1.-al;if(T<.01)break;}',
     '  t+=dt;}',
-    ' gl_FragColor=vec4(col,1.-T);}'].join('\n');
-  var glc = document.createElement('canvas'), gl = glc.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }), prog = null, U = {};
+    ' o=vec4(col,1.-T);}'].join('\n');
+  var glc = document.createElement('canvas'), gl = glc.getContext('webgl2', { premultipliedAlpha: true, alpha: true, antialias: false }), prog = null, U = {};
   if (gl) {
     function shader(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(s)); return null; } return s; }
     var vs = shader(gl.VERTEX_SHADER, VS), fs = shader(gl.FRAGMENT_SHADER, FS);
@@ -365,24 +414,30 @@
       var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
       var loc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      ['uRes', 'uOrigin', 'uTime', 'uYaw', 'uPitch', 'uS', 'uD', 'uScale', 'uDark', 'uWarm', 'uFlash', 'uOy', 'uRadii', 'uLobe'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+      ['uRes', 'uOrigin', 'uTime', 'uYaw', 'uPitch', 'uS', 'uD', 'uScale', 'uDark', 'uWarm', 'uFlash', 'uOy', 'uSteps', 'uDebug', 'uRadii', 'uLobe', 'uNoise'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+      var tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, tex);
+      gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, 64, 64, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, makeNoise());
+      gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.REPEAT); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.REPEAT);
+      gl.uniform1i(U.uNoise, 0);
     }
   }
-  var cloudImg = new Image(), box = null;              // the picture, for browsers without WebGL
+  var cloudImg = new Image(), box = null;              // the picture, for browsers without WebGL2
   if (!prog) cloudImg.src = 'cloud.png';
   function renderCloud(wr, ws, yaw, pitch) {           // once per frame: the cloud's screen box, and the volume drawn into glc
     var oy = 0.12 - 0.07 * wr + 0.03 * ws + (still ? 0 : Math.sin(t * 0.23) * 0.006), i;
     var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     for (i = 0; i < 8; i++) {
-      var q = proj([((i & 1) ? 1 : -1) * RADII[0] * 1.1, oy + ((i & 2) ? 1 : -1) * RADII[1] * 1.1, ((i & 4) ? 1 : -1) * RADII[2] * 1.1]);
+      var q = proj([((i & 1) ? 1 : -1) * RADII[0] * 1.15, oy + ((i & 2) ? 1 : -1) * RADII[1] * 1.15, ((i & 4) ? 1 : -1) * RADII[2] * 1.15]);
       x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]);
     }
     box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0, oy: oy };
     if (!prog) return;
-    var gw = Math.min(Math.round(box.w), W < 700 ? 320 : 1000), gh = Math.round(gw * box.h / box.w);
+    var phone = W < 700, gw = Math.min(Math.round(box.w), phone ? 320 : 1000), gh = Math.round(gw * box.h / box.w);
     if (glc.width !== gw || glc.height !== gh) { glc.width = gw; glc.height = gh; gl.viewport(0, 0, gw, gh); }
     gl.uniform2f(U.uRes, gw, gh); gl.uniform2f(U.uOrigin, x0 - cx, y0 - cy); gl.uniform1f(U.uScale, box.w / gw);
-    gl.uniform1f(U.uTime, still ? 0 : t); gl.uniform1f(U.uYaw, yaw); gl.uniform1f(U.uPitch, pitch);
+    gl.uniform1f(U.uTime, still ? 0 : t); gl.uniform1f(U.uYaw, yaw); gl.uniform1f(U.uPitch, pitch); gl.uniform1f(U.uSteps, phone ? 56 : 96);
+    gl.uniform1f(U.uDebug, window.__dbgNoise ? 1 : 0);
     gl.uniform1f(U.uS, S); gl.uniform1f(U.uD, D); gl.uniform1f(U.uDark, wr); gl.uniform1f(U.uWarm, ws); gl.uniform1f(U.uFlash, flash); gl.uniform1f(U.uOy, oy);
     gl.uniform3f(U.uRadii, RADII[0] * (1 + 0.1 * wr), RADII[1] * (1 - 0.15 * wr), RADII[2] * (1 + 0.1 * wr));
     // the lobes, breathing a little, around the cloud's centre; flatter and wider in the rain
