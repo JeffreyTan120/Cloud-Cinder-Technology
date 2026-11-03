@@ -5,423 +5,535 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cloud Cinder Technology</title>
 <meta name="description" content="Cloud Cinder Technology develops and publishes apps and games.">
-<meta name="theme-color" content="#2b7fe0">
+<meta name="theme-color" content="#0b0d10">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   /*
-   * A painted sky, fixed behind the page. Scrolling is a journey through the
-   * day: bright noon at the top, a golden hour, a teal-and-orange sunset, then
-   * night with stars at the bottom. The script sets the colours below from how
-   * far down the page you are; the clouds (two palettes: warm and cool, like
-   * sunlit and shaded clouds in one scene) take them live.
-   */
-  :root {
-    --sky-top: #2b7fe0; --sky-mid: #5fb0f5; --sky-low: #bfe5ff;
-    --a-hi: #ffffff; --a-mid: #f0f5ff; --a-lo: #9db8dd;
-    --b-hi: #ffffff; --b-mid: #dfecff; --b-lo: #8fb0e0;
-    --sun: #ffe27a; --glow: #fff2b0;
-    --night: 0;
-    --ink: #ffffff;
-    --muted: rgba(255, 255, 255, 0.78);
-    --accent: #ff8a3d;
-  }
+    A dark studio, one spotlight, a glass box with a cloud in it. The page scrolls through the box: the text is
+    drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (three copies,
+    one per visible pane, each shifted a little like a refraction, blended so it reads over the cloud too). The
+    weather follows the scroll: calm at the top, rain in the second screen, sunshine in the third, calm at the end.
+  */
+  :root { --vh: 100vh; --S: 400px; --calm: 1; --rain: 0; --sun: 0; --flash: 0; --base: 70vh; --floor: 60vh; --hint: 1; }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0; color: var(--ink); background: var(--sky-top);
-    font: 17px/1.65 Manrope, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    overflow-x: hidden;
-  }
-  a { color: inherit; }
-  ::selection { background: #ff8a3d; color: #fff; }
+  html { background: #0b0d10; color: #eef0f3; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; overflow-x: hidden; }
+  #spacer { width: 1px; height: 400vh; }
 
-  /* ---------- The sky ---------- */
-  .sky { position: fixed; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; }
-  .sky .air {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-low) 100%);
-  }
-  .stars { position: absolute; inset: 0; opacity: var(--night); }
-  .stars i {
-    position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff;
-    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.8);
-    animation: twinkle 4s ease-in-out infinite;
-  }
-  @keyframes twinkle { 50% { opacity: 0.25; scale: 0.7; } }
+  /* the room */
+  .room { position: fixed; inset: 0; overflow: hidden; }
+  .wall { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 15%, #1b1e24 0%, #0b0d10 70%); }
+  .spot { position: absolute; inset: 0; background: radial-gradient(60% 80% at 50% -8%, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); opacity: var(--calm); }
+  .spot.rain { background: radial-gradient(60% 80% at 50% -8%, rgba(150,170,200,.11), rgba(150,170,200,0) 70%); opacity: var(--rain); }
+  .spot.sun { background: radial-gradient(60% 85% at 50% -8%, rgba(255,212,150,.42), rgba(255,212,150,0) 72%); opacity: var(--sun); }
+  .lamp { position: absolute; left: 50%; top: -7vh; width: 36vw; min-width: 260px; height: 13vh; transform: translateX(-50%); border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(255,255,255,.6), rgba(255,255,255,0)); filter: blur(6px); opacity: calc(var(--calm) + var(--rain) * .4); }
+  .lamp.sun { width: 46vw; background: radial-gradient(closest-side, rgba(255,230,175,.95), rgba(255,200,120,0)); opacity: var(--sun); }
+  .floor { position: absolute; left: 0; right: 0; top: var(--floor); bottom: 0; background: linear-gradient(to bottom, #1d2128 0%, #0e1013 45%, #0a0b0e 100%); }
+  .floor::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 30%; background: linear-gradient(to bottom, rgba(255,255,255,.06), rgba(255,255,255,0)); }
+  .pool { position: absolute; left: 50%; top: var(--base); width: 130vmin; height: 34vmin; transform: translate(-50%, -50%); border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(255,255,255,.15), rgba(255,255,255,0)); opacity: calc(var(--calm) + var(--rain) * .35); }
+  .pool.sun { background: radial-gradient(closest-side, rgba(255,196,120,.36), rgba(255,196,120,0)); opacity: var(--sun); }
 
-  .sun { position: absolute; left: 80%; top: 14%; width: 0; height: 0; }
-  .sun > div { position: absolute; left: 0; top: 0; translate: -50% -50%; border-radius: 50%; }
-  .sun .glow {
-    width: 120vmax; height: 120vmax;
-    background: radial-gradient(circle, var(--glow) 0%, color-mix(in srgb, var(--glow) 55%, transparent) 7%,
-      color-mix(in srgb, var(--glow) 18%, transparent) 20%, transparent 42%);
-    opacity: 0.9;
-  }
-  .sun .disc {
-    width: 14vmin; height: 14vmin; min-width: 80px; min-height: 80px;
-    background: radial-gradient(circle, #fff 0%, color-mix(in srgb, var(--sun) 40%, #fff) 38%, var(--sun) 62%, transparent 72%);
-    animation: pulse 5s ease-in-out infinite;
-    opacity: calc(1 - var(--night));
-  }
-  .sun .rays, .sun .rays2 {
-    width: 280vmax; height: 280vmax; mix-blend-mode: screen;
-    -webkit-mask: radial-gradient(circle, #000 2%, rgba(0, 0, 0, 0.6) 12%, rgba(0, 0, 0, 0.2) 26%, transparent 44%);
-            mask: radial-gradient(circle, #000 2%, rgba(0, 0, 0, 0.6) 12%, rgba(0, 0, 0, 0.2) 26%, transparent 44%);
-    opacity: calc(0.9 - var(--night) * 0.6);
-  }
-  .sun .rays { animation: turn 150s linear infinite; }
-  .sun .rays2 { animation: turn 220s linear infinite reverse; opacity: calc(0.55 - var(--night) * 0.4); }
-  @keyframes turn { to { rotate: 360deg; } }
-  @keyframes pulse { 50% { scale: 1.07; } }
+  /* the box */
+  svg.scene, #sky, .flash, .grain, #content, .clone { position: fixed; inset: 0; width: 100%; height: 100%; }
+  svg.scene, #sky, .flash, .grain { pointer-events: none; }
+  svg.scene { overflow: visible; }
+  .glass, .drops { position: fixed; left: 0; top: 0; pointer-events: none; }
+  .glass { background: rgba(255,255,255,.025); backdrop-filter: blur(1.4px) brightness(1.06); -webkit-backdrop-filter: blur(1.4px) brightness(1.06); }
+  .drops { opacity: var(--rain); background-size: 100% 100%; }
+  .flash { background: #d8e2ff; opacity: var(--flash); }
+  .grain { opacity: .07; background-repeat: repeat; }
 
-  /* Clouds: soft ovals torn into cumulus by an SVG noise filter, lit from the top. */
-  .layer { position: absolute; inset: 0; will-change: transform; }
-  .cloud { position: absolute; animation: drift linear infinite alternate; will-change: transform; }
-  .cloud i { position: absolute; inset: 0; border-radius: 50%; }
-  .cloud.a i { background: radial-gradient(ellipse 70% 80% at 50% 18%, var(--a-hi) 0%, var(--a-mid) 42%, var(--a-lo) 100%); }
-  .cloud.b i { background: radial-gradient(ellipse 70% 80% at 50% 18%, var(--b-hi) 0%, var(--b-mid) 42%, var(--b-lo) 100%); }
-  .cloud i + i { inset: -16% 16% 42% 12%; }
-  .cloud.a i + i { background: radial-gradient(ellipse at 50% 60%, var(--a-hi) 0%, var(--a-hi) 50%, transparent 100%); }
-  .cloud.b i + i { background: radial-gradient(ellipse at 50% 60%, var(--b-hi) 0%, var(--b-hi) 50%, transparent 100%); }
-  .far .cloud { filter: url(#cloud-far); opacity: 0.8; }
-  .mid .cloud { filter: url(#cloud-mid); opacity: 0.94; }
-  .near .cloud { filter: url(#cloud-near); }
-  @keyframes drift { from { transform: translateX(-10vw); } to { transform: translateX(10vw); } }
+  /* the text, outside and inside the glass */
+  #content { overflow: visible; }
+  .clone { pointer-events: none; mix-blend-mode: difference; overflow: visible; }
+  .clone a { pointer-events: auto; }
+  .page { max-width: 720px; margin: 0 auto; padding: 0 22px; text-align: center; will-change: transform; }
+  section { min-height: var(--vh); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .hero .inner { transform: translateY(calc(var(--S) * .2)); }
+  .kicker, .num, .label { font-size: 11px; font-weight: 500; letter-spacing: .32em; text-transform: uppercase; color: rgba(255,255,255,.55); margin: 0 0 22px; }
+  h1 { font-size: clamp(34px, 5.2vw, 62px); font-weight: 300; letter-spacing: -.025em; line-height: 1.06; margin: 0 0 24px; }
+  h1 b, h2 b { font-weight: 500; }
+  h2 { font-size: clamp(30px, 3.9vw, 48px); font-weight: 300; letter-spacing: -.02em; line-height: 1.1; margin: 0 0 30px; }
+  h3 { font-size: 20px; font-weight: 500; letter-spacing: -.01em; margin: 0 0 10px; }
+  p { margin: 0; }
+  .lead, .cols p, .app p, .contact p { font-size: clamp(16px, 1.35vw, 19px); line-height: 1.6; color: rgba(255,255,255,.72); }
+  .lead { max-width: 46ch; }
+  .app { display: flex; gap: 24px; align-items: flex-start; text-align: left; max-width: 560px; }
+  .app .icon { flex: none; width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 28px; font-weight: 500;
+               border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
+  .tag { display: inline-block; margin-top: 12px; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .links { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; }
+  .links a, .mail { color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); padding-bottom: 2px; transition: border-color .25s; }
+  .links a:hover, .mail:hover { border-color: #fff; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; text-align: left; width: 100%; max-width: 640px; }
+  .cols .label { margin-bottom: 14px; }
+  .mail { font-size: clamp(20px, 2.8vw, 36px); font-weight: 300; letter-spacing: -.01em; display: inline-block; margin-top: 18px; }
+  .foot { margin-top: 90px; font-size: 12px; letter-spacing: .08em; color: rgba(255,255,255,.4); }
 
-  /* ---------- The page ---------- */
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; padding: 22px clamp(18px, 3.2vw, 44px); }
+  .brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 12px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+  .brand img { width: 28px; height: 28px; }
+  header .contact { color: rgba(255,255,255,.85); text-decoration: none; font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
+                    border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 10px 18px; transition: border-color .25s, color .25s; }
+  header .contact:hover { border-color: #fff; color: #fff; }
+  .hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 10px;
+          font-size: 10px; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,255,255,.5); opacity: var(--hint); pointer-events: none; }
+  .hint i { width: 1px; height: 36px; background: linear-gradient(rgba(255,255,255,.7), rgba(255,255,255,0)); animation: fall 2.4s ease-in-out infinite; }
+  @keyframes fall { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 46% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
 
-  header { position: fixed; inset: 0 0 auto 0; z-index: 5; padding: 18px 0; }
-  header .wrap { display: flex; align-items: center; justify-content: space-between; }
-  header .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 800; font-family: Syne, sans-serif; letter-spacing: 0.01em; }
-  header .brand img { width: 44px; height: 44px; filter: drop-shadow(0 4px 10px rgba(0, 20, 60, 0.35)); }
-  header .brand span { text-shadow: 0 2px 12px rgba(0, 20, 60, 0.5); }
-  header .mail {
-    font-weight: 700; font-size: 14px; text-decoration: none; padding: 10px 18px; border-radius: 99px;
-    border: 1px solid rgba(255, 255, 255, 0.55); background: rgba(255, 255, 255, 0.12);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  @media (max-width: 640px) {
+    .app { flex-direction: column; align-items: center; text-align: center; }
+    .links { justify-content: center; }
+    .cols { grid-template-columns: 1fr; gap: 36px; text-align: center; }
   }
-  header .mail:hover { background: rgba(255, 255, 255, 0.25); }
-
-  .hero { min-height: 100svh; display: grid; align-content: center; padding: 120px 0 16vh; position: relative; }
-  /* a little shade behind the words, so they hold up over bright clouds */
-  .hero::before {
-    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: -1;
-    background: radial-gradient(70% 70% at 30% 55%, rgba(6, 22, 70, 0.42), transparent 70%);
-  }
-  .hero .wrap { position: relative; }
-  .kicker {
-    display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13px; letter-spacing: 0.28em;
-    text-transform: uppercase; color: var(--muted); margin: 0 0 22px;
-  }
-  .kicker::before { content: ""; width: 34px; height: 2px; background: var(--accent); border-radius: 2px; }
-  .hero h1 {
-    font-family: Syne, sans-serif; font-weight: 800; font-size: clamp(44px, 8.4vw, 118px); line-height: 0.95;
-    letter-spacing: -0.04em; margin: 0 0 30px; max-width: 15ch;
-    text-shadow: 0 10px 40px rgba(0, 20, 60, 0.45);
-  }
-  .hero h1 span {
-    background: linear-gradient(90deg, #ffd166 0%, #ff7a3d 40%, #ff4fa3 75%, #5ee7ff 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none;
-    filter: drop-shadow(0 8px 30px rgba(0, 20, 60, 0.45));
-  }
-  .hero p.lead { font-size: clamp(18px, 2.2vw, 22px); max-width: 580px; margin: 0 0 40px; color: #fff; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 20, 60, 0.6), 0 4px 22px rgba(0, 20, 60, 0.75); }
-  .btn {
-    display: inline-flex; align-items: center; gap: 12px; padding: 16px 30px; border-radius: 99px; text-decoration: none;
-    font-weight: 800; font-family: Syne, sans-serif; font-size: 17px; color: #fff;
-    background: linear-gradient(90deg, #ff8a3d, #ff4fa3); box-shadow: 0 14px 40px -10px rgba(255, 90, 120, 0.8);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .btn:hover { transform: translateY(-3px); box-shadow: 0 20px 50px -10px rgba(255, 90, 120, 0.9); }
-  .btn svg { transition: transform 0.2s; }
-  .btn:hover svg { transform: translateY(3px); }
-
-  section { padding: 14vh 0; }
-  .num { font-family: Syne, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.3em; color: var(--muted); margin: 0 0 14px; }
-  h2 {
-    font-family: Syne, sans-serif; font-weight: 800; font-size: clamp(38px, 6vw, 72px); line-height: 1; letter-spacing: -0.035em;
-    margin: 0 0 36px; text-shadow: 0 8px 30px rgba(0, 20, 60, 0.45);
-  }
-
-  /* Dark glass with a luminous rim: it reads over any hour of the sky. */
-  .glass {
-    position: relative; border-radius: 30px; padding: 36px;
-    background: rgba(10, 18, 48, 0.5);
-    -webkit-backdrop-filter: blur(22px) saturate(1.3); backdrop-filter: blur(22px) saturate(1.3);
-    box-shadow: 0 30px 80px -30px rgba(0, 10, 40, 0.7);
-  }
-  .glass::before {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.08) 40%, rgba(94, 231, 255, 0.35) 70%, rgba(255, 138, 61, 0.6));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
-
-  .app { display: grid; grid-template-columns: auto 1fr; gap: 36px; align-items: center; }
-  .app .icon {
-    width: 150px; height: 150px; border-radius: 40px; display: grid; place-items: center; font-size: 72px; color: #fff;
-    background: linear-gradient(145deg, #ffb347, #ff7a2f 55%, #e8521a);
-    box-shadow: 0 24px 50px -14px rgba(255, 122, 47, 0.8), inset 0 2px 0 rgba(255, 255, 255, 0.4);
-    animation: hover 7s ease-in-out infinite;
-  }
-  @keyframes hover { 50% { transform: translateY(-10px) rotate(-2deg); } }
-  .app h3 { font-family: Syne, sans-serif; font-weight: 800; font-size: clamp(30px, 4vw, 42px); letter-spacing: -0.02em; margin: 0 0 8px; }
-  .app p { margin: 0 0 16px; color: var(--muted); font-size: 18px; }
-  .tag {
-    display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    padding: 7px 14px; border-radius: 99px; background: rgba(255, 138, 61, 0.2); color: #ffb37a; border: 1px solid rgba(255, 138, 61, 0.5);
-  }
-  .links { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; font-size: 15px; font-weight: 700; }
-  .links a { color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255, 255, 255, 0.4); padding-bottom: 2px; }
-  .links a:hover { border-color: var(--accent); color: #ffb37a; }
-
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  .grid .glass h3 { font-family: Syne, sans-serif; font-weight: 800; font-size: 26px; margin: 0 0 10px; }
-  .grid .glass p { margin: 0; color: var(--muted); font-size: 17px; }
-  .grid .glass .big { font-family: Syne, sans-serif; font-weight: 800; font-size: 54px; line-height: 1; margin: 0 0 18px;
-    background: linear-gradient(90deg, #5ee7ff, #ff4fa3); -webkit-background-clip: text; background-clip: text; color: transparent; }
-
-  .contact { text-align: center; padding: 56px 36px; }
-  .contact p { margin: 0 0 18px; color: var(--muted); font-size: 18px; }
-  .contact a.mail {
-    display: inline-block; font-family: Syne, sans-serif; font-weight: 800; font-size: clamp(19px, 3.4vw, 38px); letter-spacing: -0.02em;
-    text-decoration: none; word-break: break-word;
-    background: linear-gradient(90deg, #ffd166, #ff7a3d, #ff4fa3); -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-
-  footer { padding: 30px 0 50px; text-align: center; color: var(--muted); font-size: 14px; font-weight: 500; }
-
-  /* Things slide up as they come into view. */
-  [data-reveal] { opacity: 0; transform: translateY(34px); transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
-  [data-reveal].in { opacity: 1; transform: none; }
-
-  @media (max-width: 720px) {
-    body { font-size: 16px; }
-    .wrap { padding: 0 20px; }
-    header .brand span { display: none; }
-    .hero { padding: 100px 0 14vh; }
-    .glass { padding: 26px; border-radius: 24px; }
-    .app { grid-template-columns: 1fr; gap: 22px; }
-    .app .icon { width: 104px; height: 104px; font-size: 50px; border-radius: 30px; }
-    .grid { grid-template-columns: 1fr; }
-    section { padding: 10vh 0; }
-    .sun { left: 76%; top: 11%; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-    html { scroll-behavior: auto; }
-    [data-reveal] { opacity: 1; transform: none; }
-  }
+  @media (max-width: 480px) { .brand span { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } }
 </style>
 </head>
 <body>
+<div id="spacer"></div>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <filter id="cloud-far" x="-50%" y="-80%" width="200%" height="260%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.009" numOctaves="4" seed="4"/>
-    <feDisplacementMap in="SourceGraphic" scale="120"/>
-    <feGaussianBlur stdDeviation="4"/>
-  </filter>
-  <filter id="cloud-mid" x="-50%" y="-80%" width="200%" height="260%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="5" seed="11"/>
-    <feDisplacementMap in="SourceGraphic" scale="150"/>
-    <feGaussianBlur stdDeviation="2.5"/>
-  </filter>
-  <filter id="cloud-near" x="-50%" y="-80%" width="200%" height="260%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="5" seed="23"/>
-    <feDisplacementMap in="SourceGraphic" scale="170"/>
-    <feGaussianBlur stdDeviation="1.2"/>
-  </filter>
+<div class="room" aria-hidden="true">
+  <div class="wall"></div>
+  <div class="spot"></div><div class="spot rain"></div><div class="spot sun"></div>
+  <div class="lamp"></div><div class="lamp sun"></div>
+  <div class="floor"></div>
+  <div class="pool"></div><div class="pool sun"></div>
+</div>
+
+<svg class="scene" id="back" aria-hidden="true">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".96"/><stop offset="1" stop-color="#d6dbe2" stop-opacity=".92"/></linearGradient>
+    <linearGradient id="plateSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3c8cf"/><stop offset="1" stop-color="#8e949c"/></linearGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+    <mask id="refl" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%"><rect id="reflRect" x="0" y="0" width="100%" height="100%" fill="url(#fade)"/></mask>
+  </defs>
 </svg>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="glass" aria-hidden="true"></div><div class="glass" aria-hidden="true"></div><div class="glass" aria-hidden="true"></div>
 
-<div class="sky" aria-hidden="true">
-  <div class="air"></div>
-  <div class="stars"></div>
-  <div class="sun"><div class="glow"></div><div class="rays"></div><div class="rays2"></div><div class="disc"></div></div>
-  <div class="layer far" data-depth="0.15"></div>
-  <div class="layer mid" data-depth="0.4"></div>
-  <div class="layer near" data-depth="0.8"></div>
-</div>
-
-<header>
-  <div class="wrap">
-    <a class="brand" href="#top"><img src="logo.svg" alt=""><span>Cloud Cinder Technology</span></a>
-    <a class="mail" href="#contact">Contact</a>
-  </div>
-</header>
-
-<div class="hero" id="top">
-  <div class="wrap">
-    <p class="kicker">Cloud Cinder Technology</p>
-    <h1>Apps and games, <span>made with care.</span></h1>
-    <p class="lead">Cloud Cinder Technology is a small studio that develops and publishes mobile apps,
-      PC games and software tools, sold through Google Play, Steam and other online stores.</p>
-    <a class="btn" href="#apps">See our apps
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-    </a>
-  </div>
-</div>
-
-<main class="wrap">
-
-  <section id="apps">
-    <p class="num" data-reveal>01</p>
-    <h2 data-reveal>Our apps</h2>
-    <div class="glass app" data-reveal>
-      <div class="icon" aria-hidden="true">文</div>
-      <div>
-        <h3>Translator Pro</h3>
-        <p>A translator for text, voice, the camera and your screen, working on your phone.</p>
-        <p><span class="tag">Coming soon to Google Play</span></p>
-        <p class="links">
-          <a href="https://jeffreytan120.github.io/privacy">Privacy Policy</a>
-          <a href="https://jeffreytan120.github.io/privacy-ms">Dasar Privasi</a>
-          <a href="https://jeffreytan120.github.io/terms">Terms of Use</a>
-        </p>
+<div id="content">
+  <div class="page">
+    <section class="hero" id="top">
+      <div class="inner">
+        <p class="kicker">Cloud Cinder Technology</p>
+        <h1>Apps and games,<br><b>made with care.</b></h1>
+        <p class="lead">A small studio that develops and publishes mobile apps, PC games and software tools,
+          sold through Google Play, Steam and other online stores.</p>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section id="about">
-    <p class="num" data-reveal>02</p>
-    <h2 data-reveal>About us</h2>
-    <div class="grid">
-      <div class="glass" data-reveal>
-        <p class="big">Build</p>
-        <h3>What we do</h3>
-        <p>Development and publishing of software: mobile applications, PC and console games,
-          web applications and tools.</p>
+    <section id="apps">
+      <p class="num">01</p>
+      <h2>Our apps</h2>
+      <div class="app">
+        <div class="icon" aria-hidden="true">文</div>
+        <div>
+          <h3>Translator Pro</h3>
+          <p>A translator for text, voice, the camera and your screen, working on your phone.</p>
+          <p><span class="tag">Coming soon to Google Play</span></p>
+          <p class="links">
+            <a href="https://jeffreytan120.github.io/privacy">Privacy Policy</a>
+            <a href="https://jeffreytan120.github.io/privacy-ms">Dasar Privasi</a>
+            <a href="https://jeffreytan120.github.io/terms">Terms of Use</a>
+          </p>
+        </div>
       </div>
-      <div class="glass" data-reveal>
-        <p class="big">Publish</p>
-        <h3>Where to find us</h3>
-        <p>Our apps and games are published on Google Play, Steam and other online stores.</p>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section id="contact">
-    <p class="num" data-reveal>03</p>
-    <h2 data-reveal>Contact</h2>
-    <div class="glass contact" data-reveal>
+    <section id="about">
+      <p class="num">02</p>
+      <h2>About us</h2>
+      <div class="cols">
+        <div>
+          <p class="label">Build</p>
+          <h3>What we do</h3>
+          <p>Development and publishing of software: mobile applications, PC and console games, web applications and tools.</p>
+        </div>
+        <div>
+          <p class="label">Publish</p>
+          <h3>Where to find us</h3>
+          <p>Our apps and games are published on Google Play, Steam and other online stores.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <p class="num">03</p>
+      <h2>Contact</h2>
       <p>Questions, support or business enquiries:</p>
       <a class="mail" href="mailto:cosmicbunny880@gmail.com">cosmicbunny880@gmail.com</a>
-    </div>
-  </section>
-
-</main>
-
-<footer>
-  <div class="wrap">
-    <p>&copy; 2026 Cloud Cinder Technology. All rights reserved.</p>
+      <p class="foot">&copy; 2026 Cloud Cinder Technology. All rights reserved.</p>
+    </section>
   </div>
-</footer>
+</div>
+
+<svg class="scene" id="front" aria-hidden="true">
+  <defs>
+    <linearGradient id="sheenTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".30"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity=".14"/></linearGradient>
+    <linearGradient id="sheenL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient>
+    <linearGradient id="sheenR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+</svg>
+<div class="drops" aria-hidden="true"></div><div class="drops" aria-hidden="true"></div>
+<div class="flash" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header>
+  <a class="brand" href="#top"><img src="logo.svg" alt=""><span>Cloud Cinder Technology</span></a>
+  <a class="contact" href="#contact">Contact</a>
+</header>
+<div class="hint" aria-hidden="true"><span>Scroll</span><i></i></div>
+<noscript><style>#content { position: static; } #spacer, .clone { display: none; }</style></noscript>
 
 <script>
-  (function () {
-    var sky = document.querySelector('.sky');
-    var root = document.documentElement;
-    var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+(function () {
+  var root = document.documentElement;
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches, fine = matchMedia('(pointer: fine)').matches;
+  var content = document.getElementById('content'), page = content.firstElementChild, spacer = document.getElementById('spacer');
+  var canvas = document.getElementById('sky'), ctx = canvas.getContext('2d');
+  var back = document.getElementById('back'), front = document.getElementById('front');
+  var glass = [].slice.call(document.querySelectorAll('.glass')), wet = [].slice.call(document.querySelectorAll('.drops'));
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = 1, H = 1, S = 1, cx = 0, cy = 0, maxY = 1, y = 0, t = 0, last = 0;
+  var D = 3.4, ca = 1, sa = 0, cb = 1, sb = 0;             // camera distance (box units) and the view angles
+  var tmx = 0, tmy = 0, mx = 0, my = 0, flash = 0, nextFlash = 3, refire = 0;
 
-    // The hours of the day, top of the page to bottom: the sky, the warm (a)
-    // and cool (b) clouds' lit / middle / shadow colours, the sun and its glow.
-    var hours = [
-      { at: 0,    sky: ['#2b7fe0', '#5fb0f5', '#bfe5ff'], a: ['#ffffff', '#f0f5ff', '#9db8dd'], b: ['#ffffff', '#dfecff', '#8fb0e0'], sun: '#ffe27a', glow: '#fff2b0', night: 0 },
-      { at: 0.32, sky: ['#2466c4', '#6aa9e8', '#ffc98a'], a: ['#fff6dc', '#ffc27a', '#c8683c'], b: ['#e4f6ff', '#86c9ec', '#3f78a8'], sun: '#ffcf5a', glow: '#ffd59a', night: 0 },
-      { at: 0.66, sky: ['#0b2a5e', '#1f6e9c', '#ff7a4e'], a: ['#ffd9a6', '#ff7f3f', '#7e2b3f'], b: ['#b5f3ff', '#2cc8cc', '#1c4f8c'], sun: '#ff9a4a', glow: '#ff8a5a', night: 0.15 },
-      { at: 1,    sky: ['#04081c', '#16163f', '#3a1d55'], a: ['#f3c4ff', '#b06ae0', '#3c2262'], b: ['#a6d8ff', '#3f84dc', '#0f2d62'], sun: '#ffffff', glow: '#b58cff', night: 1 }
-    ];
-    function hex(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
-    function mix(c1, c2, k) {
-      var a = hex(c1), b = hex(c2);
-      return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * k) + ',' + Math.round(a[1] + (b[1] - a[1]) * k) + ',' + Math.round(a[2] + (b[2] - a[2]) * k) + ')';
-    }
-    function paint(p) {
-      var i = 1;
-      while (i < hours.length - 1 && hours[i].at < p) i++;
-      var h0 = hours[i - 1], h1 = hours[i];
-      var k = (p - h0.at) / (h1.at - h0.at); k = k < 0 ? 0 : k > 1 ? 1 : k;
-      k = k * k * (3 - 2 * k);
-      var set = function (name, v) { root.style.setProperty(name, v); };
-      set('--sky-top', mix(h0.sky[0], h1.sky[0], k)); set('--sky-mid', mix(h0.sky[1], h1.sky[1], k)); set('--sky-low', mix(h0.sky[2], h1.sky[2], k));
-      set('--a-hi', mix(h0.a[0], h1.a[0], k)); set('--a-mid', mix(h0.a[1], h1.a[1], k)); set('--a-lo', mix(h0.a[2], h1.a[2], k));
-      set('--b-hi', mix(h0.b[0], h1.b[0], k)); set('--b-mid', mix(h0.b[1], h1.b[1], k)); set('--b-lo', mix(h0.b[2], h1.b[2], k));
-      set('--sun', mix(h0.sun, h1.sun, k)); set('--glow', mix(h0.glow, h1.glow, k));
-      set('--night', (h0.night + (h1.night - h0.night) * k).toFixed(3));
-    }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function smooth(v) { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); }
+  function tri(s, c) { return smooth(1 - Math.abs(s - c)); }
+  function mix(a, b, k) { return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; }
+  function rgba(c, a) { return 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a.toFixed(3) + ')'; }
+  function set(name, v) { root.style.setProperty(name, v); }
+  function seeded(seed) { return function () { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
 
-    // Rays: wedges of uneven width and brightness, so they read as light, not a pattern.
-    function rays(seed, count, strength) {
-      var r = seed, stops = [], at = 0;
-      function rand() { r = (r * 16807) % 2147483647; return r / 2147483647; }
-      for (var i = 0; i < count && at < 352; i++) {
-        var gap = 3 + rand() * 10, width = 1 + rand() * 5, a = (0.3 + rand() * 0.7) * strength;
-        var c = 'rgba(255,250,225,';
-        stops.push(c + '0) ' + at.toFixed(1) + 'deg', c + a.toFixed(2) + ') ' + (at + width / 2).toFixed(1) + 'deg', c + '0) ' + (at + width).toFixed(1) + 'deg');
-        at += width + gap;
+  // the box: corners 0..7 (bit 1 = +x, bit 2 = top, bit 4 = +z), the plate under it, and both mirrored in the floor
+  var Y0 = -0.46, Y1 = 0.54, P0 = -0.5;
+  function corners(y0, y1, mirror) {
+    var c = [];
+    for (var i = 0; i < 8; i++) { var yy = (i & 2) ? y1 : y0; if (mirror) yy = -1 - yy; c.push([(i & 1) ? 0.5 : -0.5, yy, (i & 4) ? 0.5 : -0.5]); }
+    return c;
+  }
+  var BOX = corners(Y0, Y1), PLATE = corners(P0, Y0), BOXM = corners(Y0, Y1, true), PLATEM = corners(P0, Y0, true);
+  var FACES = [[0, 4, 6, 2], [1, 3, 7, 5], [0, 1, 5, 4], [2, 6, 7, 3], [0, 2, 3, 1], [4, 5, 7, 6]];   // -x +x -y +y -z +z
+  var NORMALS = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]];
+  var EDGES = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  var EDGE_FACES = EDGES.map(function (e) {
+    var f = [];
+    for (var i = 0; i < 6; i++) if (FACES[i].indexOf(e[0]) >= 0 && FACES[i].indexOf(e[1]) >= 0) f.push(i);
+    return f;
+  });
+
+  function view(a, b) { ca = Math.cos(a); sa = Math.sin(a); cb = Math.cos(b); sb = Math.sin(b); }
+  function proj(p) {                                       // yaw, then pitch (camera above), then perspective
+    var x1 = p[0] * ca + p[2] * sa, z1 = p[2] * ca - p[0] * sa;
+    var y2 = p[1] * cb + z1 * sb, z2 = z1 * cb - p[1] * sb;
+    var k = 1 / (1 + z2 / D);
+    return [cx + S * x1 * k, cy - S * y2 * k, z2, k];
+  }
+  function facing(n, c) {                                  // does the face with normal n at centre c look at the camera?
+    var nx = n[0] * ca + n[2] * sa, nz1 = n[2] * ca - n[0] * sa, ny = n[1] * cb + nz1 * sb, nz = nz1 * cb - n[1] * sb;
+    var px = c[0] * ca + c[2] * sa, pz1 = c[2] * ca - c[0] * sa, py = c[1] * cb + pz1 * sb, pz = pz1 * cb - c[1] * sb;
+    return nx * px + ny * py + nz * (pz + D) < 0;
+  }
+  function hull(pts) {                                     // convex hull, monotone chain
+    var p = pts.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }), lo = [], up = [], i;
+    function cross(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+    for (i = 0; i < p.length; i++) { while (lo.length > 1 && cross(lo[lo.length - 2], lo[lo.length - 1], p[i]) <= 0) lo.pop(); lo.push(p[i]); }
+    for (i = p.length - 1; i >= 0; i--) { while (up.length > 1 && cross(up[up.length - 2], up[up.length - 1], p[i]) <= 0) up.pop(); up.push(p[i]); }
+    lo.pop(); up.pop();
+    return lo.concat(up);
+  }
+  function pt(p) { return p[0].toFixed(1) + 'px ' + p[1].toFixed(1) + 'px'; }
+  function poly(pts) { return pts.map(pt).join(', '); }
+  function points(pts) { return pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+  function bbox(pts) {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    pts.forEach(function (p) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); });
+    return [x0, y0, x1 - x0, y1 - y0];
+  }
+
+  // the SVG parts, made once and moved every frame
+  function el(parent, name, attrs) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+  var gHidden = el(back, 'g'), gRefl = el(back, 'g', { mask: 'url(#refl)', opacity: 0.4 }), gPlate = el(back, 'g'), gBackEdges = el(back, 'g');
+  var gFront = el(front, 'g'), gFrontEdges = el(front, 'g');
+  var fade = document.getElementById('fade'), reflRect = document.getElementById('reflRect');
+  var faceHidden = [], faceFront = [], plateSide = [], reflSide = [], backEdge = [], frontGlow = [], frontEdge = [], reflEdge = [], i;
+  for (i = 0; i < 6; i++) {
+    faceHidden.push(el(gHidden, 'polygon', { fill: 'rgba(255,255,255,0.03)' }));
+    plateSide.push(el(gPlate, 'polygon', { fill: 'url(#plateSide)' }));
+    reflSide.push(el(gRefl, 'polygon', { fill: '#9aa0a8' }));
+  }
+  var plateTop = el(gPlate, 'polygon', { fill: 'url(#plate)' }), reflTop = el(gRefl, 'polygon', { fill: '#c9ced5' });
+  for (i = 0; i < 3; i++) faceFront.push(el(gFront, 'polygon', { fill: 'url(#sheenTop)' }));
+  for (i = 0; i < 12; i++) {
+    reflEdge.push(el(gRefl, 'line', { stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1 }));
+    backEdge.push(el(gBackEdges, 'line', { stroke: 'rgba(255,255,255,0.16)', 'stroke-width': 1 }));
+    frontGlow.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.35)', 'stroke-width': 3, filter: 'url(#glow)' }));
+    frontEdge.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.85)', 'stroke-width': 1.2 }));
+  }
+  function line(e, a, b) { e.setAttribute('x1', a[0].toFixed(1)); e.setAttribute('y1', a[1].toFixed(1)); e.setAttribute('x2', b[0].toFixed(1)); e.setAttribute('y2', b[1].toFixed(1)); }
+  function show(e, on) { e.setAttribute('display', on ? '' : 'none'); }
+
+  // the text inside the glass: one copy per visible pane
+  var clones = [];
+  for (i = 0; i < 3; i++) {
+    var c = document.createElement('div'), pg = page.cloneNode(true);
+    c.className = 'clone'; c.setAttribute('aria-hidden', 'true');
+    [].forEach.call(pg.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+    c.appendChild(pg); document.body.insertBefore(c, front);
+    clones.push({ box: c, page: pg, dx: 0, dy: 0 });
+  }
+
+  // rain on the inside of the panes
+  function dew(seed) {
+    var r = seeded(seed), parts = [];
+    for (var i = 0; i < 60; i++) {
+      var sz = 2 + r() * 6;
+      parts.push('radial-gradient(' + sz.toFixed(1) + 'px circle at ' + (r() * 100).toFixed(1) + '% ' + (r() * 100).toFixed(1) + '%, rgba(255,255,255,.55) 0, rgba(255,255,255,.18) 45%, rgba(255,255,255,0) 70%)');
+    }
+    return parts.join(',');
+  }
+  wet[0].style.backgroundImage = dew(3); wet[1].style.backgroundImage = dew(9);
+
+  // the cloud: puffs in three layers, drawn back to front from three sprites (lit top, middle, shaded base)
+  var puffs = [], rnd = seeded(7);
+  function puff(x, y, z, r, tier) { puffs.push({ x: x, y: y, z: z, r: r, tier: tier, ph: rnd() * 6.28 }); }
+  for (i = 0; i < 26; i++) { var a = rnd() * 6.28, q = Math.sqrt(rnd()); puff(Math.cos(a) * q * 0.3, -0.1 + rnd() * 0.08, Math.sin(a) * q * 0.2, 0.13 + rnd() * 0.05, 2); }
+  for (i = 0; i < 22; i++) { a = rnd() * 6.28; q = Math.sqrt(rnd()); puff(Math.cos(a) * q * 0.26, rnd() * 0.12, Math.sin(a) * q * 0.17, 0.11 + rnd() * 0.05, 1); }
+  for (i = 0; i < 16; i++) { a = rnd() * 6.28; q = Math.sqrt(rnd()); puff(Math.cos(a) * q * 0.2, 0.12 + rnd() * 0.13, Math.sin(a) * q * 0.13, 0.07 + rnd() * 0.05, 0); }
+
+  var PAL = { calm: { light: [255, 255, 255], body: [236, 240, 246], shade: [126, 138, 156] },
+              rain: { light: [178, 186, 196], body: [118, 126, 136], shade: [52, 57, 64] },
+              sun:  { light: [255, 247, 224], body: [255, 233, 200], shade: [198, 142, 96] } };
+  var sprites = null, lastMix = [-1, -1, -1];
+  function colour(key, wc, wr, ws) {
+    var c = PAL.calm[key], r = PAL.rain[key], s = PAL.sun[key];
+    return [c[0] * wc + r[0] * wr + s[0] * ws, c[1] * wc + r[1] * wr + s[1] * ws, c[2] * wc + r[2] * wr + s[2] * ws];
+  }
+  function sprite(body, shade, light, rim, under) {
+    var c = document.createElement('canvas'); c.width = c.height = 128;
+    var x = c.getContext('2d'), g = x.createRadialGradient(64, 58, 2, 64, 64, 63);
+    g.addColorStop(0, rgba(body, 1)); g.addColorStop(0.5, rgba(body, 0.97)); g.addColorStop(0.8, rgba(body, 0.6)); g.addColorStop(1, rgba(body, 0));
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    x.globalCompositeOperation = 'source-atop';
+    g = x.createLinearGradient(0, 28, 0, 126); g.addColorStop(0, rgba(shade, 0)); g.addColorStop(1, rgba(shade, under)); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    g = x.createLinearGradient(0, 4, 0, 56); g.addColorStop(0, rgba(light, rim)); g.addColorStop(1, rgba(light, 0)); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    return c;
+  }
+  function paint(wc, wr, ws) {
+    if (sprites && Math.abs(wc - lastMix[0]) + Math.abs(wr - lastMix[1]) + Math.abs(ws - lastMix[2]) < 0.02) return;
+    lastMix = [wc, wr, ws];
+    var light = colour('light', wc, wr, ws), body = colour('body', wc, wr, ws), shade = colour('shade', wc, wr, ws), rim = 0.35 + 0.45 * ws;
+    sprites = [sprite(mix(body, light, 0.7), shade, light, rim, 0.55), sprite(body, shade, light, rim * 0.6, 0.7), sprite(mix(body, shade, 0.3), shade, light, rim * 0.3, 0.8)];
+  }
+  var order = [];
+  function cloud(mirror, wr, ws) {
+    var K = 0.86, oy = 0.1 - 0.06 * wr + 0.03 * ws, spread = K * (1 + 0.12 * wr), squash = K * (1 - 0.2 * wr), i;
+    order.length = 0;
+    for (i = 0; i < puffs.length; i++) {
+      var p = puffs[i], dx = still ? 0 : Math.sin(t * 0.35 + p.ph) * 0.012, dy = still ? 0 : Math.cos(t * 0.27 + p.ph) * 0.008;
+      var py = oy + p.y * squash + dy; if (mirror) py = -1 - py;
+      var q = proj([p.x * spread + dx, py, p.z * spread]); q.push(p); order.push(q);
+    }
+    order.sort(function (a, b) { return b[2] - a[2]; });
+    for (i = 0; i < order.length; i++) { var o = order[i], r = o[4].r * K * S * o[3]; ctx.drawImage(sprites[o[4].tier], o[0] - r, o[1] - r, r * 2, r * 2); }
+  }
+  function disc(c, r, squash, fill) {                     // a flat ellipse on the plate
+    ctx.save(); ctx.translate(c[0], c[1]); ctx.scale(1, squash); ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); ctx.fill(); ctx.restore();
+  }
+  function shadow(wr) {
+    var c = proj([0, Y0, 0]), r = 0.32 * S * c[3], g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, rgba([30, 40, 60], 0.35 - 0.1 * wr)); g.addColorStop(1, rgba([30, 40, 60], 0));
+    disc(c, r, 0.3, g);
+  }
+
+  // rain inside the box, ripples where it lands
+  var drops = [], ripples = [];
+  for (i = 0; i < 240; i++) drops.push({ x: rnd() * 0.9 - 0.45, z: rnd() * 0.9 - 0.45, y: Y0 + rnd() * 0.3, v: 0.9 + rnd() * 0.5, l: 0.04 + rnd() * 0.05 });
+  function rain(w, dt) {
+    var n = Math.round(drops.length * w), i, d;
+    ctx.strokeStyle = rgba([205, 220, 240], 0.5 * w); ctx.lineWidth = 1; ctx.beginPath();
+    for (i = 0; i < n; i++) {
+      d = drops[i];
+      if (!still) d.y -= d.v * dt;
+      if (d.y < Y0) {
+        if (ripples.length < 50 && Math.random() < 0.2) ripples.push({ x: d.x, z: d.z, t: 0 });
+        d.y = -0.14 - Math.random() * 0.08; d.x = Math.random() * 0.9 - 0.45; d.z = Math.random() * 0.9 - 0.45;
       }
-      return 'conic-gradient(from 0deg, ' + stops.join(', ') + ', rgba(255,250,225,0) 360deg)';
+      var a = proj([d.x, d.y, d.z]), b = proj([d.x, Math.min(d.y + d.l, -0.12), d.z]);
+      ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
     }
-    sky.querySelector('.rays').style.background = rays(7, 60, 0.8);
-    sky.querySelector('.rays2').style.background = rays(91, 50, 0.6);
-
-    // Stars, hidden until night.
-    var stars = sky.querySelector('.stars');
-    for (var s = 0; s < 90; s++) {
-      var st = document.createElement('i');
-      var sz = 1.5 + Math.random() * 2.5;
-      st.style.cssText = 'left:' + (Math.random() * 100) + 'vw;top:' + (Math.random() * 100) + 'vh;width:' + sz + 'px;height:' + sz + 'px;' +
-        'animation-delay:-' + (Math.random() * 4) + 's;animation-duration:' + (3 + Math.random() * 4) + 's;opacity:' + (0.5 + Math.random() * 0.5);
-      stars.appendChild(st);
+    ctx.stroke();
+    for (i = ripples.length - 1; i >= 0; i--) {
+      var rp = ripples[i]; rp.t += dt;
+      if (rp.t > 0.7) { ripples.splice(i, 1); continue; }
+      var c = proj([rp.x, Y0, rp.z]), r = (0.01 + rp.t * 0.07) * S * c[3];
+      ctx.strokeStyle = rgba([220, 232, 248], 0.5 * w * (1 - rp.t / 0.7)); ctx.beginPath(); ctx.ellipse(c[0], c[1], r, r * 0.28, 0, 0, 6.2832); ctx.stroke();
     }
+  }
 
-    // Clouds: [left vw, top vh, width vw, drift seconds] per depth; warm and cool clouds alternate.
-    var clouds = {
-      far:  [[-8, 22, 30, 70], [36, 12, 26, 85], [62, 30, 30, 80], [12, 42, 26, 90], [84, 48, 22, 75]],
-      mid:  [[-14, 52, 44, 55], [46, 58, 40, 65], [72, 38, 32, 60], [8, 72, 36, 70]],
-      near: [[-20, 82, 62, 45], [28, 90, 58, 50], [64, 80, 60, 42], [-6, 100, 70, 55], [50, 102, 66, 48]]
-    };
-    var narrow = window.innerWidth < 720, n = 0;
-    Object.keys(clouds).forEach(function (depth) {
-      var layer = sky.querySelector('.' + depth);
-      clouds[depth].forEach(function (c, i) {
-        var el = document.createElement('div');
-        var w = narrow ? c[2] * 1.7 : c[2];
-        el.className = 'cloud ' + (n++ % 2 ? 'b' : 'a');
-        el.style.cssText = 'left:' + c[0] + 'vw;top:' + c[1] + 'vh;width:' + w + 'vw;height:' + (w * 0.42) + 'vw;' +
-          'animation-duration:' + c[3] + 's;animation-delay:-' + (c[3] * (i * 0.37 % 1)).toFixed(1) + 's;' + (i % 2 ? 'animation-direction:alternate-reverse;' : '');
-        el.innerHTML = '<i></i><i></i>';
-        layer.appendChild(el);
-      });
+  // sun: beams from the lamp through the top pane, a pool of light on the plate, a glow behind the cloud
+  function sunlight(w) {
+    var top = proj([0, Y1 + 0.35, 0]), i;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (i = 0; i < 6; i++) {
+      var ang = (i - 2.5) * 0.16 + (still ? 0 : Math.sin(t * 0.4 + i) * 0.03), len = S * 1.15;
+      var x1 = top[0] + Math.sin(ang) * len, y1 = top[1] + Math.cos(ang) * len, px = Math.cos(ang), py = -Math.sin(ang), wb = S * 0.08;
+      var g = ctx.createLinearGradient(top[0], top[1], x1, y1);
+      g.addColorStop(0, 'rgba(255,226,170,0)'); g.addColorStop(0.3, rgba([255, 226, 170], 0.11 * w)); g.addColorStop(1, 'rgba(255,226,170,0)');
+      ctx.beginPath(); ctx.moveTo(top[0] - px * 2, top[1] - py * 2); ctx.lineTo(top[0] + px * 2, top[1] + py * 2);
+      ctx.lineTo(x1 + px * wb, y1 + py * wb); ctx.lineTo(x1 - px * wb, y1 - py * wb); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    }
+    var c = proj([0, Y0, 0]), r = 0.42 * S * c[3], g2 = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g2.addColorStop(0, rgba([255, 220, 160], 0.4 * w)); g2.addColorStop(1, rgba([255, 220, 160], 0));
+    disc(c, r, 0.3, g2);
+    var h = proj([0, 0.22, 0]), hr = 0.5 * S * h[3], g3 = ctx.createRadialGradient(h[0], h[1], 0, h[0], h[1], hr);
+    g3.addColorStop(0, rgba([255, 214, 150], 0.3 * w)); g3.addColorStop(1, rgba([255, 214, 150], 0));
+    ctx.fillStyle = g3; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2);
+    ctx.restore();
+  }
+  function lightning(f) {
+    var h = proj([0, 0.1, 0]), hr = 0.55 * S * h[3], g = ctx.createRadialGradient(h[0], h[1], 0, h[0], h[1], hr);
+    g.addColorStop(0, rgba([235, 240, 255], 0.9 * f)); g.addColorStop(1, rgba([235, 240, 255], 0));
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2); ctx.restore();
+  }
+
+  var lastYaw = 0, lastPitch = 0;
+  function frame(now) {
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0, i, f;
+    last = now; t += dt;
+    var s = y / H, u = y / maxY;                           // screens scrolled, and 0..1 over the page
+    var wr = tri(s, 1), ws = tri(s, 2), wc = Math.max(0, 1 - wr - ws);
+    mx += (tmx - mx) * 0.06; my += (tmy - my) * 0.06;
+    var yaw = Math.round((32 + 9 * u + 3 * mx) * 20) / 20, pitch = Math.round((11 + 1.5 * my) * 20) / 20;
+    view(yaw * Math.PI / 180, pitch * Math.PI / 180);
+    var moved = yaw !== lastYaw || pitch !== lastPitch; lastYaw = yaw; lastPitch = pitch;
+
+    if (wr > 0.7 && !still) { nextFlash -= dt; if (nextFlash < 0) { flash = 1; refire = 0.14; nextFlash = 4 + Math.random() * 6; } }
+    if (refire > 0) { refire -= dt; if (refire <= 0) flash = Math.max(flash, 0.7); }
+    flash *= Math.exp(-dt * 8);
+    set('--calm', wc.toFixed(3)); set('--rain', wr.toFixed(3)); set('--sun', ws.toFixed(3));
+    set('--flash', (0.14 * flash).toFixed(3)); set('--hint', (1 - clamp(s * 2.5, 0, 1)).toFixed(3));
+
+    var P = BOX.map(proj), Q = PLATE.map(proj), PM = BOXM.map(proj), QM = PLATEM.map(proj);
+    var vis = NORMALS.map(function (n) { return facing(n, [n[0] * 0.5, 0.04 + n[1] * 0.5, n[2] * 0.5]); });
+    var floorY = 0;
+    for (i = 0; i < 8; i++) floorY = Math.max(floorY, Q[i][1]);
+    var hp = hull(P.concat(Q));
+
+    if (moved) {
+      set('--base', proj([0, P0, 0])[1].toFixed(1) + 'px'); set('--floor', (cy + 0.12 * S).toFixed(1) + 'px');
+      fade.setAttribute('y1', floorY.toFixed(1)); fade.setAttribute('y2', (floorY + 0.5 * S).toFixed(1));
+      var slot = 0, wetSlot = 0;
+      for (f = 0; f < 6; f++) {
+        var pts = FACES[f].map(function (k) { return P[k]; }), str = points(pts);
+        faceHidden[f].setAttribute('points', str); show(faceHidden[f], !vis[f]);
+        var side = f !== 2 && f !== 3;
+        plateSide[f].setAttribute('points', points(FACES[f].map(function (k) { return Q[k]; }))); show(plateSide[f], side && vis[f]);
+        reflSide[f].setAttribute('points', points(FACES[f].map(function (k) { return QM[k]; }))); show(reflSide[f], side && vis[f]);
+        if (vis[f] && slot < 3) {
+          var b = bbox(pts), fx = b[0] + b[2] / 2, fy = b[1] + b[3] / 2;
+          faceFront[slot].setAttribute('points', str);
+          faceFront[slot].setAttribute('fill', f === 3 ? 'url(#sheenTop)' : fx < cx ? 'url(#sheenL)' : 'url(#sheenR)');
+          show(faceFront[slot], true);
+          var g = glass[slot].style;
+          g.display = ''; g.left = b[0] + 'px'; g.top = b[1] + 'px'; g.width = b[2] + 'px'; g.height = b[3] + 'px';
+          g.clipPath = 'polygon(' + poly(pts.map(function (p) { return [p[0] - b[0], p[1] - b[1]]; })) + ')';
+          if (side && wetSlot < 2) {
+            var w = wet[wetSlot++].style;
+            w.display = ''; w.left = g.left; w.top = g.top; w.width = g.width; w.height = g.height; w.clipPath = g.clipPath;
+          }
+          // the text inside this pane, shifted down a little like a refraction (the same for every pane, so a line
+          // crossing the edge between two panes steps once instead of showing its letters twice); side panes reach
+          // down over the plate
+          var cp = side ? FACES[f].map(function (k) { return (k & 2) ? P[k] : Q[k]; }) : pts;
+          clones[slot].box.style.clipPath = 'polygon(' + poly(cp) + ')';
+          clones[slot].dx = 0; clones[slot].dy = 0.01 * S;
+          slot++;
+        }
+      }
+      for (; slot < 3; slot++) { show(faceFront[slot], false); glass[slot].style.display = 'none'; clones[slot].box.style.clipPath = 'polygon(0 0, 0 0, 0 0)'; }
+      for (; wetSlot < 2; wetSlot++) wet[wetSlot].style.display = 'none';
+      plateTop.setAttribute('points', points(FACES[3].map(function (k) { return Q[k]; })));
+      reflTop.setAttribute('points', points(FACES[2].map(function (k) { return QM[k]; })));
+      for (i = 0; i < 12; i++) {
+        var a = P[EDGES[i][0]], e = P[EDGES[i][1]], isFront = vis[EDGE_FACES[i][0]] || vis[EDGE_FACES[i][1]];
+        line(backEdge[i], a, e); show(backEdge[i], !isFront);
+        line(frontEdge[i], a, e); line(frontGlow[i], a, e); show(frontEdge[i], isFront); show(frontGlow[i], isFront);
+        line(reflEdge[i], PM[EDGES[i][0]], PM[EDGES[i][1]]);
+      }
+      content.style.clipPath = 'polygon(evenodd, 0 0, ' + W + 'px 0, ' + W + 'px ' + H + 'px, 0 ' + H + 'px, 0 0, ' + poly(hp) + ', ' + pt(hp[0]) + ')';
+    }
+    page.style.transform = 'translate3d(0,' + (-y).toFixed(2) + 'px,0)';
+    for (i = 0; i < 3; i++) clones[i].page.style.transform = 'translate3d(' + clones[i].dx.toFixed(2) + 'px,' + (clones[i].dy - y).toFixed(2) + 'px,0)';
+
+    // the canvas: the cloud's reflection in the floor, then everything inside the box
+    paint(wc, wr, ws);
+    ctx.clearRect(0, 0, W, H);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, floorY, W, H - floorY); ctx.clip();
+    ctx.globalAlpha = 0.18; cloud(true, wr, ws); ctx.globalAlpha = 1;
+    var fg = ctx.createLinearGradient(0, floorY, 0, floorY + 0.5 * S); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = fg; ctx.fillRect(0, floorY, W, H - floorY); ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+    ctx.save(); ctx.beginPath();
+    ctx.moveTo(hp[0][0], hp[0][1]); for (i = 1; i < hp.length; i++) ctx.lineTo(hp[i][0], hp[i][1]); ctx.closePath(); ctx.clip();
+    if (ws > 0.01) sunlight(ws);
+    shadow(wr);
+    cloud(false, wr, ws);
+    if (wr > 0.01) rain(wr, dt);
+    if (flash > 0.02) lightning(flash);
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+
+  var lastW = 0, lastH = 0;
+  function layout(force) {
+    if (!force && innerWidth === lastW && Math.abs(innerHeight - lastH) < 150) return;   // the phone's address bar is not a resize
+    lastW = W = innerWidth; lastH = H = innerHeight;
+    var dpr = Math.min(1.5, devicePixelRatio || 1);
+    S = Math.min(H * 0.6, W * 0.62); cx = W / 2; cy = H * 0.5;        // the box is about 1.4 S wide on screen
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    [back, front].forEach(function (s) { s.setAttribute('viewBox', '0 0 ' + W + ' ' + H); });
+    reflRect.setAttribute('width', W); reflRect.setAttribute('height', H);
+    set('--vh', H + 'px'); set('--S', S.toFixed(1) + 'px');
+    spacer.style.height = page.offsetHeight + 'px'; maxY = Math.max(1, page.offsetHeight - H); y = clamp(scrollY, 0, maxY);
+    lastYaw = -1;
+  }
+  addEventListener('resize', function () { layout(false); });
+  addEventListener('scroll', function () { y = clamp(scrollY, 0, maxY); }, { passive: true });
+  if (fine && !still) addEventListener('pointermove', function (e) { tmx = (e.clientX / W - 0.5) * 2; tmy = (e.clientY / H - 0.5) * 2; });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { last = 0; requestAnimationFrame(frame); } });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(true); });
+  addEventListener('load', function () { layout(true); });
+
+  [].forEach.call(document.querySelectorAll('header a[href^="#"]'), function (a) {
+    a.addEventListener('click', function (e) {
+      var target = page.querySelector(a.getAttribute('href'));
+      if (!target) return;
+      e.preventDefault(); scrollTo({ top: target.offsetTop, behavior: still ? 'auto' : 'smooth' });
     });
+  });
 
-    // Scrolling: the hour of the day moves on, the clouds sink past at their depth's speed.
-    var layers = [].slice.call(sky.querySelectorAll('[data-depth]'));
-    var ticking = false;
-    function climb() {
-      ticking = false;
-      var max = root.scrollHeight - innerHeight;
-      var p = max > 0 ? Math.min(1, scrollY / max) : 0;
-      paint(p);
-      if (still) return;
-      layers.forEach(function (l) { l.style.transform = 'translate3d(0,' + (p * l.dataset.depth * 70).toFixed(2) + 'vh,0)'; });
-    }
-    addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(climb); } }, { passive: true });
-    addEventListener('resize', climb);
-    climb();
-
-    // Reveal on the way in.
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-    }, { threshold: 0.15 });
-    [].forEach.call(document.querySelectorAll('[data-reveal]'), function (el) { io.observe(el); });
+  (function () {                                          // film grain, so the dark gradients don't band
+    var c = document.createElement('canvas'); c.width = c.height = 96;
+    var x = c.getContext('2d'), img = x.createImageData(96, 96), d = img.data;
+    for (var i = 0; i < d.length; i += 4) { d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = Math.random() * 48; }
+    x.putImageData(img, 0, 0); document.querySelector('.grain').style.backgroundImage = 'url(' + c.toDataURL() + ')';
   })();
-</script>
 
+  layout(true);
+  if (location.hash) { var h = page.querySelector(location.hash); if (h) scrollTo(0, h.offsetTop); }
+  requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
