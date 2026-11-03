@@ -1,10 +1,16 @@
-"""The site's cloud, rendered in Blender Cycles as a real volume.
+"""The site's cloud, rendered in Blender Cycles as a real volume, after the reference (a compact cumulus heap in a glass box).
 
-A pile of metaball lobes (five big along the base, five in the middle, four small on top) becomes a mesh, the mesh
-a voxel volume, the volume is displaced by a noise texture for the cauliflower surface, and a Principled Volume
-scatters one area lamp from above. One render per weather state, transparent background.
+Shape: a heap of core metaball lobes (a flat base row, two rows above, a peak left of centre) with ~40 small lobes
+scattered over its upper surface for the cauliflower look, and a smaller, greyer cloud behind right. The metaball
+becomes a mesh, the mesh a hard-edged voxel volume (a thin interior band, so the edge is crisp, not fog); three
+Volume Displace layers tear the edge into lobes, cauliflower and fibre; the shader adds grain and cuts the base
+flat. A dense Principled Volume with many bounces scatters one strong area lamp from above: a near-white top, a
+grey base, shadowed creases. One render per weather state, transparent background.
 
-    blender -b --factory-startup -P tools/cloud_render.py -- --state calm --out cloud_calm.png [--size 1400 1000] [--samples 256]
+    blender -b --factory-startup -P tools/cloud_render.py -- --state calm --out cloud_calm.png [--size 1400 1000] [--samples 512]
+
+Framing: lens 55 at distance 9.6 covers 36/55*9.6 = 6.28 scene units = 2.09 page units across; the page draws
+the image 2.1 box widths wide, centred on the camera target (the main cloud's centre).
 """
 import math
 import sys
@@ -24,7 +30,7 @@ def opt(name, default, n=1):
 state = opt('--state', 'calm')
 out = opt('--out', 'cloud.png')
 size = [int(v) for v in opt('--size', ['1400', '1000'], 2)]
-samples = int(opt('--samples', '256'))
+samples = int(opt('--samples', '512'))
 S = 3.0                                                   # scene units per page unit
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -38,9 +44,12 @@ for d in prefs.devices:
 scene.cycles.device = 'GPU'
 scene.cycles.samples = samples
 scene.cycles.use_denoising = True
-scene.cycles.volume_bounces = 8                           # light bouncing inside the cloud: the soft, luminous look
+scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+scene.cycles.denoising_input_passes = 'RGB_ALBEDO_NORMAL'
+scene.cycles.denoising_prefilter = 'ACCURATE'
+scene.cycles.volume_bounces = 12                          # light bouncing inside the cloud: the white, luminous body
 scene.cycles.volume_max_steps = 1024
-scene.cycles.volume_step_rate = 0.5
+scene.cycles.volume_step_rate = 0.4
 scene.render.film_transparent = True
 scene.render.resolution_x, scene.render.resolution_y = size
 scene.render.resolution_percentage = 100
@@ -48,7 +57,7 @@ scene.render.image_settings.file_format = 'PNG'
 scene.render.image_settings.color_mode = 'RGBA'
 scene.render.filepath = out
 scene.view_settings.view_transform = 'Standard'
-scene.view_settings.exposure = -0.5
+scene.view_settings.exposure = float(opt('--exposure', {'calm': '0.0', 'rain': '-0.3', 'sun': '0.1'}[state]))
 
 
 def link(o):
@@ -56,8 +65,6 @@ def link(o):
     return o
 
 
-# the lobes (page units, y up), the same pile the page used
-lobes = []
 seed = 11
 
 
@@ -67,34 +74,48 @@ def rnd():
     return seed / 4294967296
 
 
-# the pile, after the reference: six round lobes along the base, six above, five, then three on top with the peak
-# left of centre; four bulges toward the camera; a small trailing cloud back right. A little jitter.
-def row(n, x0, x1, y, z, r, jz=0.04):
+def gauss():
+    return (rnd() + rnd() + rnd() - 1.5) * 1.6
+
+
+# a cloud (page units, y up, z toward the camera): a dome, wider than tall. Big lobes fill the inside; even-sized
+# lobes sit on the dome's surface at even spacing (a Fibonacci spread): the billows. ymin keeps the base a row of
+# lobes (nothing dangles below it); the peak leans left.
+def dome(cx, cy, cz, A, B, C, n, r0, rvar, ymin=-0.5, lean=-0.05, fill=0.16):
+    out = []
+    for x in (-0.6, -0.3, 0.0, 0.3, 0.6):
+        for z in (-0.4, 0.4):
+            for y in (-0.1, 0.35):
+                if x * x + y * y + z * z < 0.6:
+                    out.append((cx + x * A, cy + y * B, cz + z * C, fill * (A / 0.47)))
+    golden = math.pi * (3 - math.sqrt(5))
     for i in range(n):
-        x = x0 + (x1 - x0) * i / (n - 1)
-        lobes.append((x + (rnd() - 0.5) * 0.02, y + (rnd() - 0.5) * 0.02, z + (rnd() - 0.5) * jz * 2, r + rnd() * 0.015))
+        y = 1 - 2 * (i + 0.5) / n
+        if y < ymin:
+            continue
+        r = math.sqrt(1 - y * y)
+        phi = i * golden
+        x, z = math.cos(phi) * r, math.sin(phi) * r
+        rr = r0 + rnd() * rvar + 0.15 * r0 * max(0.0, y)
+        out.append((cx + x * A * 0.86 + lean * max(0.0, y) + (rnd() - 0.5) * 0.02, cy + y * B * 0.86 + (rnd() - 0.5) * 0.02,
+                    cz + z * C * 0.86 + (rnd() - 0.5) * 0.02, rr))
+    return out
 
 
-row(6, -0.34, 0.34, -0.06, 0.0, 0.13)
-row(6, -0.31, 0.31, 0.04, 0.0, 0.12, 0.06)
-row(5, -0.25, 0.25, 0.13, 0.0, 0.105)
-row(3, -0.12, 0.12, 0.215, 0.0, 0.085)
-lobes.append((-0.05, 0.255, 0.0, 0.07))
-row(4, -0.22, 0.22, 0.03, -0.14, 0.1)
-row(3, -0.16, 0.16, -0.04, -0.15, 0.1)
-for x, y, z, r in ((0.46, -0.02, 0.12, 0.11), (0.54, 0.04, 0.08, 0.09), (0.6, -0.03, 0.14, 0.085), (0.5, -0.08, 0.18, 0.09)):
-    lobes.append((x, y, z, r))
+lobes = dome(0.0, 0.1, 0.0, 0.46, 0.42, 0.3, 64, 0.1, 0.025)
+# the second cloud, behind right, smaller, in the main cloud's shadow
+lobes += dome(0.32, 0.1, -0.5, 0.3, 0.24, 0.2, 36, 0.08, 0.02, -0.4, -0.02, 0.12)
 
-flat = 0.82 if state == 'rain' else 1.0
-wide = 1.08 if state == 'rain' else 1.0
+flat = 0.86 if state == 'rain' else 1.0
+wide = 1.06 if state == 'rain' else 1.0
 mb = bpy.data.metaballs.new('cloud')
-mb.resolution = 0.045
-mb.threshold = 0.78
+mb.resolution = 0.04
+mb.threshold = 0.8
 mbo = link(bpy.data.objects.new('cloud', mb))
 for x, y, z, r in lobes:
     el = mb.elements.new()
-    el.co = (x * S * wide, z * S * wide, y * S * flat)
-    el.radius = r * S * 1.12
+    el.co = (x * S * wide, -z * S * wide, y * S * flat)   # Blender: x right, y away from the camera, z up
+    el.radius = r * S * 1.17
 bpy.context.view_layer.objects.active = mbo
 mbo.select_set(True)
 bpy.ops.object.convert(target='MESH')
@@ -105,45 +126,93 @@ vol = link(bpy.data.objects.new('cloudvol', bpy.data.volumes.new('cloudvol')))
 m2v = vol.modifiers.new('m2v', 'MESH_TO_VOLUME')
 m2v.object = mesh
 m2v.resolution_mode = 'VOXEL_AMOUNT'
-m2v.voxel_amount = 320
+m2v.voxel_amount = 380
 if hasattr(m2v, 'use_fill_volume'):
     m2v.use_fill_volume = True
-m2v.interior_band_width = 0.35
-tex = bpy.data.textures.new('fluff', 'CLOUDS')
-tex.noise_scale = 0.45
-tex.noise_depth = 3
-disp = vol.modifiers.new('fluff', 'VOLUME_DISPLACE')
-disp.texture = tex
-disp.strength = 0.13
-disp.texture_sample_radius = 0.3
-tex2 = bpy.data.textures.new('fine', 'CLOUDS')
-tex2.noise_scale = 0.14
-tex2.noise_depth = 4
-disp2 = vol.modifiers.new('fine', 'VOLUME_DISPLACE')
-disp2.texture = tex2
-disp2.strength = 0.09
-disp2.texture_sample_radius = 0.14
+m2v.interior_band_width = 0.23                            # a short fuzz at the edge, then full density
+
+
+def displace(name, scale, depth, strength, radius):
+    tex = bpy.data.textures.new(name, 'CLOUDS')
+    tex.noise_scale = scale
+    tex.noise_depth = depth
+    tex.noise_basis = 'ORIGINAL_PERLIN'
+    d = vol.modifiers.new(name, 'VOLUME_DISPLACE')
+    d.texture = tex
+    d.strength = strength
+    d.texture_sample_radius = radius
+    return d
+
+
+displace('lobes', 0.8, 2, 0.2, 0.2)                       # bends the big lobes out of their metaball roundness
+displace('cauli', 0.3, 3, 0.14, 0.08)                     # the cauliflower
+displace('fibre', 0.12, 3, 0.08, 0.03)                    # the fibre at the edge
 
 mat = bpy.data.materials.new('cloud')
 mat.use_nodes = True
-nodes = mat.node_tree.nodes
+nt = mat.node_tree
+nodes, links = nt.nodes, nt.links
 nodes.clear()
+attr = nodes.new('ShaderNodeAttribute')
+attr.attribute_name = 'density'
+# grain: a fine noise modulates the density (cotton texture inside the lobes)
+tc = nodes.new('ShaderNodeTexCoord')
+grain = nodes.new('ShaderNodeTexNoise')
+grain.inputs['Scale'].default_value = 3.4
+grain.inputs['Detail'].default_value = 10.0
+grain.inputs['Roughness'].default_value = 0.62
+grain.inputs['Lacunarity'].default_value = 2.3
+links.new(tc.outputs['Object'], grain.inputs['Vector'])
+gmap = nodes.new('ShaderNodeMapRange')
+gmap.inputs['From Min'].default_value = 0.42
+gmap.inputs['From Max'].default_value = 0.6
+gmap.inputs['To Min'].default_value = 0.3
+gmap.inputs['To Max'].default_value = 1.0
+links.new(grain.outputs['Fac'], gmap.inputs['Value'])
+# the flat base: the density fades out below z0 (scene units)
+sep = nodes.new('ShaderNodeSeparateXYZ')
+links.new(tc.outputs['Object'], sep.inputs['Vector'])
+base = nodes.new('ShaderNodeMapRange')
+z0 = -0.2 * S * flat
+base.inputs['From Min'].default_value = z0
+base.inputs['From Max'].default_value = z0 + 0.3
+base.inputs['To Min'].default_value = 0.0
+base.inputs['To Max'].default_value = 1.0
+links.new(sep.outputs['Z'], base.inputs['Value'])
+edge = nodes.new('ShaderNodeMath')                        # the fuzz band ramps up fast: dense just inside the edge
+edge.operation = 'POWER'
+edge.inputs[1].default_value = 0.6
+links.new(attr.outputs['Fac'], edge.inputs[0])
+m1 = nodes.new('ShaderNodeMath')
+m1.operation = 'MULTIPLY'
+links.new(edge.outputs['Value'], m1.inputs[0])
+links.new(gmap.outputs['Result'], m1.inputs[1])
+m2 = nodes.new('ShaderNodeMath')
+m2.operation = 'MULTIPLY'
+links.new(m1.outputs['Value'], m2.inputs[0])
+links.new(base.outputs['Result'], m2.inputs[1])
 pv = nodes.new('ShaderNodeVolumePrincipled')
-pv.inputs['Density'].default_value = {'calm': 70.0, 'rain': 85.0, 'sun': 62.0}[state]
-pv.inputs['Anisotropy'].default_value = 0.3
+pv.inputs['Anisotropy'].default_value = 0.35
 pv.inputs['Color'].default_value = (1.0, 1.0, 1.0, 1.0)
+m3 = nodes.new('ShaderNodeMath')                          # the density: attribute x grain x base cut x the state's density
+m3.operation = 'MULTIPLY'
+m3.inputs[1].default_value = {'calm': 160.0, 'rain': 190.0, 'sun': 150.0}[state]
+links.new(m2.outputs['Value'], m3.inputs[0])
+links.new(m3.outputs['Value'], pv.inputs['Density'])
 outn = nodes.new('ShaderNodeOutputMaterial')
-mat.node_tree.links.new(pv.outputs['Volume'], outn.inputs['Volume'])
+links.new(pv.outputs['Volume'], outn.inputs['Volume'])
 vol.data.materials.append(mat)
 
-# the camera: the box's view, 34 degrees round, 11 degrees down
+# the camera: the box's view, 34 degrees round, 9 degrees down, far enough that the perspective is gentle
 cam = bpy.data.cameras.new('cam')
-cam.lens = 60
+cam.lens = 55
 camo = link(bpy.data.objects.new('cam', cam))
-yaw, pitch, dist = math.radians(34), math.radians(9), 7.0
-camo.location = (math.sin(yaw) * math.cos(pitch) * dist, -math.cos(yaw) * math.cos(pitch) * dist, math.sin(pitch) * dist + 0.15 * S)
+yaw, pitch, dist = math.radians(34), math.radians(9), 9.6
+target = (0.04 * S, 0.0, 0.17 * S)                        # the main cloud's visual centre
+camo.location = (target[0] + math.sin(yaw) * math.cos(pitch) * dist, target[1] - math.cos(yaw) * math.cos(pitch) * dist,
+                 target[2] + math.sin(pitch) * dist)
 tgt = link(bpy.data.objects.new('tgt', None))
-tgt.location = (0.08 * S, 0, 0.08 * S)
+tgt.location = target
 c = camo.constraints.new('TRACK_TO')
 c.target = tgt
 c.track_axis = 'TRACK_NEGATIVE_Z'
@@ -151,11 +220,16 @@ c.up_axis = 'UP_Y'
 scene.camera = camo
 
 
-def lamp(name, loc, energy, colour, sz, look=(0, 0, 0)):
-    ld = bpy.data.lights.new(name, 'AREA')
+def lamp(name, loc, energy, colour, sz, look=(0, 0, 0), spot=None):
+    ld = bpy.data.lights.new(name, 'SPOT' if spot else 'AREA')
     ld.energy = energy
     ld.color = colour
-    ld.size = sz
+    if spot:
+        ld.spot_size = math.radians(spot)
+        ld.spot_blend = 0.4
+        ld.shadow_soft_size = sz
+    else:
+        ld.size = sz
     lo = link(bpy.data.objects.new(name, ld))
     lo.location = loc
     t = link(bpy.data.objects.new(name + '_t', None))
@@ -167,16 +241,21 @@ def lamp(name, loc, energy, colour, sz, look=(0, 0, 0)):
     return lo
 
 
+top, aim = (0.4, -0.9, 10.0), (0.1, 0.0, 0.5)             # the studio lamp: a spot above the main cloud; the back cloud in its penumbra
+cone = 42.0
 if state == 'calm':
-    lamp('key', (0.8, -2.2, 9.0), 2600, (1.0, 1.0, 1.0), 2.6)
-    lamp('fill', (0.0, -9.0, 2.0), 160, (0.9, 0.93, 1.0), 8.0)
+    lamp('key', top, 7000, (1.0, 1.0, 1.0), 1.2, aim, cone)
+    lamp('fill', (0.0, -10.0, 1.5), 60, (0.9, 0.93, 1.0), 9.0)
+    lamp('bounce', (0.0, 0.0, -6.0), 200, (0.92, 0.94, 1.0), 6.0, (0, 0, 0))
 elif state == 'rain':
-    lamp('key', (0.8, -2.2, 9.0), 900, (0.72, 0.8, 0.95), 3.2)
-    lamp('fill', (0.0, -9.0, 2.0), 80, (0.7, 0.78, 0.95), 8.0)
+    lamp('key', top, 2600, (0.74, 0.81, 0.95), 1.5, aim, cone + 4)
+    lamp('fill', (0.0, -10.0, 1.5), 50, (0.7, 0.78, 0.95), 9.0)
+    lamp('bounce', (0.0, 0.0, -6.0), 120, (0.8, 0.85, 1.0), 6.0, (0, 0, 0))
 else:
-    lamp('key', (0.8, -2.2, 9.0), 3800, (1.0, 0.86, 0.62), 2.6)
-    lamp('rim', (-1.0, 4.0, 7.0), 2600, (1.0, 0.8, 0.5), 2.0)
-    lamp('fill', (0.0, -9.0, 2.0), 140, (1.0, 0.9, 0.78), 8.0)
+    lamp('key', top, 9000, (1.0, 0.88, 0.66), 1.2, aim, cone)
+    lamp('rim', (-1.5, 5.0, 7.5), 4000, (1.0, 0.8, 0.5), 2.4, (0, 0, 0.4))
+    lamp('fill', (0.0, -10.0, 1.5), 80, (1.0, 0.9, 0.78), 9.0)
+    lamp('bounce', (0.0, 0.0, -6.0), 300, (1.0, 0.9, 0.75), 6.0, (0, 0, 0))
 
 world = bpy.data.worlds.new('w')
 scene.world = world
@@ -186,4 +265,4 @@ bg.inputs['Color'].default_value = (0.05, 0.055, 0.07, 1.0)
 bg.inputs['Strength'].default_value = {'calm': 1.0, 'rain': 0.6, 'sun': 1.2}[state]
 
 bpy.ops.render.render(write_still=True)
-print('[cloud] rendered', state, size, samples, '->', out)
+print('[cloud] rendered', state, size, samples, 'lobes', len(lobes), '->', out)
