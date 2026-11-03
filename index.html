@@ -15,9 +15,10 @@
 <style>
   /*
     A dark studio, one spotlight, a glass box with a cloud in it. The page scrolls through the box: the text is
-    drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (three copies,
-    one per visible pane, each shifted a little like a refraction, blended so it reads over the cloud too). The
+    drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (a copy
+    clipped to the box, shifted down a little like a refraction, blended so it reads over the cloud too). The
     weather follows the scroll: calm at the top, rain in the second screen, sunshine in the third, calm at the end.
+    The box only moves with the mouse, never with the scroll, so scrolling changes no clip paths (that was slow).
   */
   :root { --vh: 100vh; --S: 400px; --calm: 1; --rain: 0; --sun: 0; --flash: 0; --base: 70vh; --floor: 60vh; --hint: 1; }
   * { box-sizing: border-box; }
@@ -44,9 +45,7 @@
   svg.scene, #sky, .flash, .grain, #content, .clone { position: fixed; inset: 0; width: 100%; height: 100%; }
   svg.scene, #sky, .flash, .grain { pointer-events: none; }
   svg.scene { overflow: visible; }
-  .glass, .drops { position: fixed; left: 0; top: 0; pointer-events: none; }
-  .glass { background: rgba(255,255,255,.025); backdrop-filter: blur(1.4px) brightness(1.06); -webkit-backdrop-filter: blur(1.4px) brightness(1.06); }
-  .drops { opacity: var(--rain); background-size: 100% 100%; }
+  .drops { position: fixed; left: 0; top: 0; pointer-events: none; opacity: var(--rain); background-size: 100% 100%; }
   .flash { background: #d8e2ff; opacity: var(--flash); }
   .grain { opacity: .07; background-repeat: repeat; }
 
@@ -117,7 +116,6 @@
   </defs>
 </svg>
 <canvas id="sky" aria-hidden="true"></canvas>
-<div class="glass" aria-hidden="true"></div><div class="glass" aria-hidden="true"></div><div class="glass" aria-hidden="true"></div>
 
 <div id="content">
   <div class="page">
@@ -180,7 +178,6 @@
     <linearGradient id="sheenTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".30"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity=".14"/></linearGradient>
     <linearGradient id="sheenL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient>
     <linearGradient id="sheenR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
   </defs>
 </svg>
 <div class="drops" aria-hidden="true"></div><div class="drops" aria-hidden="true"></div>
@@ -201,7 +198,7 @@
   var content = document.getElementById('content'), page = content.firstElementChild, spacer = document.getElementById('spacer');
   var canvas = document.getElementById('sky'), ctx = canvas.getContext('2d');
   var back = document.getElementById('back'), front = document.getElementById('front');
-  var glass = [].slice.call(document.querySelectorAll('.glass')), wet = [].slice.call(document.querySelectorAll('.drops'));
+  var wet = [].slice.call(document.querySelectorAll('.drops'));
   var NS = 'http://www.w3.org/2000/svg';
   var W = 1, H = 1, S = 1, cx = 0, cy = 0, maxY = 1, y = 0, t = 0, last = 0;
   var D = 3.4, ca = 1, sa = 0, cb = 1, sb = 0;             // camera distance (box units) and the view angles
@@ -277,21 +274,17 @@
   for (i = 0; i < 12; i++) {
     reflEdge.push(el(gRefl, 'line', { stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1 }));
     backEdge.push(el(gBackEdges, 'line', { stroke: 'rgba(255,255,255,0.16)', 'stroke-width': 1 }));
-    frontGlow.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.35)', 'stroke-width': 3, filter: 'url(#glow)' }));
+    frontGlow.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.14)', 'stroke-width': 4, 'stroke-linecap': 'round' }));
     frontEdge.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.85)', 'stroke-width': 1.2 }));
   }
   function line(e, a, b) { e.setAttribute('x1', a[0].toFixed(1)); e.setAttribute('y1', a[1].toFixed(1)); e.setAttribute('x2', b[0].toFixed(1)); e.setAttribute('y2', b[1].toFixed(1)); }
   function show(e, on) { e.setAttribute('display', on ? '' : 'none'); }
 
-  // the text inside the glass: one copy per visible pane
-  var clones = [];
-  for (i = 0; i < 3; i++) {
-    var c = document.createElement('div'), pg = page.cloneNode(true);
-    c.className = 'clone'; c.setAttribute('aria-hidden', 'true');
-    [].forEach.call(pg.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
-    c.appendChild(pg); document.body.insertBefore(c, front);
-    clones.push({ box: c, page: pg, dx: 0, dy: 0 });
-  }
+  // the text inside the glass: one copy, clipped to the box
+  var clone = document.createElement('div'), clonePage = page.cloneNode(true);
+  clone.className = 'clone'; clone.setAttribute('aria-hidden', 'true');
+  [].forEach.call(clonePage.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+  clone.appendChild(clonePage); document.body.insertBefore(clone, front);
 
   // rain on the inside of the panes
   function dew(seed) {
@@ -407,22 +400,23 @@
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2); ctx.restore();
   }
 
-  var lastYaw = 0, lastPitch = 0;
+  var lastYaw = 0, lastPitch = 0, vars = {};
+  function setVar(name, v) { v = v.toFixed(3); if (vars[name] !== v) { vars[name] = v; set(name, v); } }
   function frame(now) {
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0, i, f;
     last = now; t += dt;
-    var s = y / H, u = y / maxY;                           // screens scrolled, and 0..1 over the page
+    var s = y / H;                                         // screens scrolled
     var wr = tri(s, 1), ws = tri(s, 2), wc = Math.max(0, 1 - wr - ws);
     mx += (tmx - mx) * 0.06; my += (tmy - my) * 0.06;
-    var yaw = Math.round((32 + 9 * u + 3 * mx) * 20) / 20, pitch = Math.round((11 + 1.5 * my) * 20) / 20;
+    var yaw = Math.round((32 + 3 * mx) * 4) / 4, pitch = Math.round((11 + 1.5 * my) * 4) / 4;
     view(yaw * Math.PI / 180, pitch * Math.PI / 180);
     var moved = yaw !== lastYaw || pitch !== lastPitch; lastYaw = yaw; lastPitch = pitch;
 
     if (wr > 0.7 && !still) { nextFlash -= dt; if (nextFlash < 0) { flash = 1; refire = 0.14; nextFlash = 4 + Math.random() * 6; } }
     if (refire > 0) { refire -= dt; if (refire <= 0) flash = Math.max(flash, 0.7); }
     flash *= Math.exp(-dt * 8);
-    set('--calm', wc.toFixed(3)); set('--rain', wr.toFixed(3)); set('--sun', ws.toFixed(3));
-    set('--flash', (0.14 * flash).toFixed(3)); set('--hint', (1 - clamp(s * 2.5, 0, 1)).toFixed(3));
+    setVar('--calm', wc); setVar('--rain', wr); setVar('--sun', ws);
+    setVar('--flash', 0.14 * flash); setVar('--hint', 1 - clamp(s * 2.5, 0, 1));
 
     var P = BOX.map(proj), Q = PLATE.map(proj), PM = BOXM.map(proj), QM = PLATEM.map(proj);
     var vis = NORMALS.map(function (n) { return facing(n, [n[0] * 0.5, 0.04 + n[1] * 0.5, n[2] * 0.5]); });
@@ -441,28 +435,22 @@
         plateSide[f].setAttribute('points', points(FACES[f].map(function (k) { return Q[k]; }))); show(plateSide[f], side && vis[f]);
         reflSide[f].setAttribute('points', points(FACES[f].map(function (k) { return QM[k]; }))); show(reflSide[f], side && vis[f]);
         if (vis[f] && slot < 3) {
-          var b = bbox(pts), fx = b[0] + b[2] / 2, fy = b[1] + b[3] / 2;
+          var b = bbox(pts), fx = b[0] + b[2] / 2;
           faceFront[slot].setAttribute('points', str);
           faceFront[slot].setAttribute('fill', f === 3 ? 'url(#sheenTop)' : fx < cx ? 'url(#sheenL)' : 'url(#sheenR)');
           show(faceFront[slot], true);
-          var g = glass[slot].style;
-          g.display = ''; g.left = b[0] + 'px'; g.top = b[1] + 'px'; g.width = b[2] + 'px'; g.height = b[3] + 'px';
-          g.clipPath = 'polygon(' + poly(pts.map(function (p) { return [p[0] - b[0], p[1] - b[1]]; })) + ')';
           if (side && wetSlot < 2) {
             var w = wet[wetSlot++].style;
-            w.display = ''; w.left = g.left; w.top = g.top; w.width = g.width; w.height = g.height; w.clipPath = g.clipPath;
+            w.display = ''; w.left = b[0] + 'px'; w.top = b[1] + 'px'; w.width = b[2] + 'px'; w.height = b[3] + 'px';
+            w.clipPath = 'polygon(' + poly(pts.map(function (p) { return [p[0] - b[0], p[1] - b[1]]; })) + ')';
           }
-          // the text inside this pane, shifted down a little like a refraction (the same for every pane, so a line
-          // crossing the edge between two panes steps once instead of showing its letters twice); side panes reach
-          // down over the plate
-          var cp = side ? FACES[f].map(function (k) { return (k & 2) ? P[k] : Q[k]; }) : pts;
-          clones[slot].box.style.clipPath = 'polygon(' + poly(cp) + ')';
-          clones[slot].dx = 0; clones[slot].dy = 0.01 * S;
           slot++;
         }
       }
-      for (; slot < 3; slot++) { show(faceFront[slot], false); glass[slot].style.display = 'none'; clones[slot].box.style.clipPath = 'polygon(0 0, 0 0, 0 0)'; }
+      for (; slot < 3; slot++) show(faceFront[slot], false);
       for (; wetSlot < 2; wetSlot++) wet[wetSlot].style.display = 'none';
+      // the text inside the box, shifted down a little like a refraction
+      clone.style.clipPath = 'polygon(' + poly(hp) + ')';
       plateTop.setAttribute('points', points(FACES[3].map(function (k) { return Q[k]; })));
       reflTop.setAttribute('points', points(FACES[2].map(function (k) { return QM[k]; })));
       for (i = 0; i < 12; i++) {
@@ -474,7 +462,7 @@
       content.style.clipPath = 'polygon(evenodd, 0 0, ' + W + 'px 0, ' + W + 'px ' + H + 'px, 0 ' + H + 'px, 0 0, ' + poly(hp) + ', ' + pt(hp[0]) + ')';
     }
     page.style.transform = 'translate3d(0,' + (-y).toFixed(2) + 'px,0)';
-    for (i = 0; i < 3; i++) clones[i].page.style.transform = 'translate3d(' + clones[i].dx.toFixed(2) + 'px,' + (clones[i].dy - y).toFixed(2) + 'px,0)';
+    clonePage.style.transform = 'translate3d(0,' + (0.01 * S - y).toFixed(2) + 'px,0)';
 
     // the canvas: the cloud's reflection in the floor, then everything inside the box
     paint(wc, wr, ws);
@@ -499,7 +487,7 @@
   function layout(force) {
     if (!force && innerWidth === lastW && Math.abs(innerHeight - lastH) < 150) return;   // the phone's address bar is not a resize
     lastW = W = innerWidth; lastH = H = innerHeight;
-    var dpr = Math.min(1.5, devicePixelRatio || 1);
+    var dpr = Math.min(W * H > 2500000 ? 1 : 1.5, devicePixelRatio || 1);    // a big screen gets a 1:1 canvas
     S = Math.min(H * 0.6, W * 0.62); cx = W / 2; cy = H * 0.5;        // the box is about 1.4 S wide on screen
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     [back, front].forEach(function (s) { s.setAttribute('viewBox', '0 0 ' + W + ' ' + H); });
