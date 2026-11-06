@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Cinder Technology</title>
+<meta name="description" content="Cloud Cinder Technology develops and publishes apps and games.">
+<meta name="theme-color" content="#0b0d10">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /*
+    A dark studio, one spotlight, a glass box with a cloud in it. The page scrolls through the box: the text is
+    drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (a copy
+    clipped to the box, shifted down a little like a refraction, blended so it reads over the cloud too). The
+    weather follows the scroll: calm at the top, rain in the second screen, sunshine in the third, calm at the end.
+    The box only moves with the mouse, never with the scroll, so scrolling changes no clip paths (that was slow).
+  */
+  :root { --vh: 100vh; --S: 400px; --calm: 1; --rain: 0; --sun: 0; --flash: 0; --base: 70vh; --floor: 60vh; --hint: 1; }
+  * { box-sizing: border-box; }
+  html { background: #0b0d10; color: #eef0f3; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; overflow-x: hidden; }
+  #spacer { width: 1px; height: 400vh; }
+
+  /* the room */
+  .room { position: fixed; inset: 0; overflow: hidden; }
+  .wall { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 15%, #1b1e24 0%, #0b0d10 70%); }
+  .spot { position: absolute; inset: 0; background: radial-gradient(60% 80% at 50% -8%, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); opacity: var(--calm); }
+  .spot.rain { background: radial-gradient(60% 80% at 50% -8%, rgba(150,170,200,.11), rgba(150,170,200,0) 70%); opacity: var(--rain); }
+  .spot.sun { background: radial-gradient(60% 85% at 50% -8%, rgba(255,212,150,.42), rgba(255,212,150,0) 72%); opacity: var(--sun); }
+  .lamp { position: absolute; left: 50%; top: -7vh; width: 36vw; min-width: 260px; height: 13vh; transform: translateX(-50%); border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(255,255,255,.6), rgba(255,255,255,0)); filter: blur(6px); opacity: calc(var(--calm) + var(--rain) * .4); }
+  .lamp.sun { width: 46vw; background: radial-gradient(closest-side, rgba(255,230,175,.95), rgba(255,200,120,0)); opacity: var(--sun); }
+  .floor { position: absolute; left: 0; right: 0; top: var(--floor); bottom: 0; background: linear-gradient(to bottom, #1d2128 0%, #0e1013 45%, #0a0b0e 100%); }
+  .floor::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 30%; background: linear-gradient(to bottom, rgba(255,255,255,.06), rgba(255,255,255,0)); }
+  .pool { position: absolute; left: 50%; top: var(--base); width: 130vmin; height: 34vmin; transform: translate(-50%, -50%); border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(255,255,255,.15), rgba(255,255,255,0)); opacity: calc(var(--calm) + var(--rain) * .35); }
+  .pool.sun { background: radial-gradient(closest-side, rgba(255,196,120,.36), rgba(255,196,120,0)); opacity: var(--sun); }
+
+  /* the box */
+  svg.scene, #sky, .flash, .grain, #content, .clone { position: fixed; inset: 0; width: 100%; height: 100%; }
+  svg.scene, #sky, .flash, .grain { pointer-events: none; }
+  svg.scene { overflow: visible; }
+  .drops { position: fixed; left: 0; top: 0; pointer-events: none; opacity: var(--rain); background-size: 100% 100%; }
+  .flash { background: #d8e2ff; opacity: var(--flash); }
+  .grain { opacity: .07; background-repeat: repeat; }
+
+  /* the text, outside and inside the glass */
+  #content { overflow: visible; }
+  .clone { pointer-events: none; mix-blend-mode: difference; overflow: visible; }
+  .clone a { pointer-events: auto; }
+  .page { max-width: 720px; margin: 0 auto; padding: 0 22px; text-align: center; will-change: transform; }
+  section { min-height: var(--vh); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .hero .inner { transform: translateY(calc(var(--S) * .2)); }
+  .kicker, .num, .label { font-size: 11px; font-weight: 500; letter-spacing: .32em; text-transform: uppercase; color: rgba(255,255,255,.55); margin: 0 0 22px; }
+  h1 { font-size: clamp(34px, 5.2vw, 62px); font-weight: 300; letter-spacing: -.025em; line-height: 1.06; margin: 0 0 24px; }
+  h1 b, h2 b { font-weight: 500; }
+  h2 { font-size: clamp(30px, 3.9vw, 48px); font-weight: 300; letter-spacing: -.02em; line-height: 1.1; margin: 0 0 30px; }
+  h3 { font-size: 20px; font-weight: 500; letter-spacing: -.01em; margin: 0 0 10px; }
+  p { margin: 0; }
+  .lead, .cols p, .app p, .contact p { font-size: clamp(16px, 1.35vw, 19px); line-height: 1.6; color: rgba(255,255,255,.72); }
+  .lead { max-width: 46ch; }
+  .app { display: flex; gap: 24px; align-items: flex-start; text-align: left; max-width: 560px; }
+  .app .icon { flex: none; width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 28px; font-weight: 500;
+               border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
+  .tag { display: inline-block; margin-top: 12px; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .links { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; }
+  .links a, .mail { color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); padding-bottom: 2px; transition: border-color .25s; }
+  .links a:hover, .mail:hover { border-color: #fff; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; text-align: left; width: 100%; max-width: 640px; }
+  .cols .label { margin-bottom: 14px; }
+  .mail { font-size: clamp(20px, 2.8vw, 36px); font-weight: 300; letter-spacing: -.01em; display: inline-block; margin-top: 18px; }
+  .foot { margin-top: 90px; font-size: 12px; letter-spacing: .08em; color: rgba(255,255,255,.4); }
+
+  header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; padding: 22px clamp(18px, 3.2vw, 44px); }
+  .brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 12px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+  .brand img { width: 28px; height: 28px; }
+  header .contact { color: rgba(255,255,255,.85); text-decoration: none; font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
+                    border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 10px 18px; transition: border-color .25s, color .25s; }
+  header .contact:hover { border-color: #fff; color: #fff; }
+  .hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 10px;
+          font-size: 10px; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,255,255,.5); opacity: var(--hint); pointer-events: none; }
+  .hint i { width: 1px; height: 36px; background: linear-gradient(rgba(255,255,255,.7), rgba(255,255,255,0)); animation: fall 2.4s ease-in-out infinite; }
+  @keyframes fall { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 46% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+
+  @media (max-width: 640px) {
+    .app { flex-direction: column; align-items: center; text-align: center; }
+    .links { justify-content: center; }
+    .cols { grid-template-columns: 1fr; gap: 36px; text-align: center; }
+  }
+  @media (max-width: 480px) { .brand span { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } }
+</style>
+</head>
+<body>
+<div id="spacer"></div>
+
+<div class="room" aria-hidden="true">
+  <div class="wall"></div>
+  <div class="spot"></div><div class="spot rain"></div><div class="spot sun"></div>
+  <div class="lamp"></div><div class="lamp sun"></div>
+  <div class="floor"></div>
+  <div class="pool"></div><div class="pool sun"></div>
+</div>
+
+<svg class="scene" id="back" aria-hidden="true">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".96"/><stop offset="1" stop-color="#d6dbe2" stop-opacity=".92"/></linearGradient>
+    <linearGradient id="plateSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3c8cf"/><stop offset="1" stop-color="#8e949c"/></linearGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+    <mask id="refl" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%"><rect id="reflRect" x="0" y="0" width="100%" height="100%" fill="url(#fade)"/></mask>
+  </defs>
+</svg>
+<canvas id="sky" aria-hidden="true"></canvas>
+
+<div id="content">
+  <div class="page">
+    <section class="hero" id="top">
+      <div class="inner">
+        <p class="kicker">Cloud Cinder Technology</p>
+        <h1>Apps and games,<br><b>made with care.</b></h1>
+        <p class="lead">A small studio that develops and publishes mobile apps, PC games and software tools,
+          sold through Google Play, Steam and other online stores.</p>
+      </div>
+    </section>
+
+    <section id="apps">
+      <p class="num">01</p>
+      <h2>Our apps</h2>
+      <div class="app">
+        <div class="icon" aria-hidden="true">文</div>
+        <div>
+          <h3>Translator Pro</h3>
+          <p>A translator for text, voice, the camera and your screen, working on your phone.</p>
+          <p><span class="tag">Coming soon to Google Play</span></p>
+          <p class="links">
+            <a href="https://jeffreytan120.github.io/privacy">Privacy Policy</a>
+            <a href="https://jeffreytan120.github.io/privacy-ms">Dasar Privasi</a>
+            <a href="https://jeffreytan120.github.io/terms">Terms of Use</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <p class="num">02</p>
+      <h2>About us</h2>
+      <div class="cols">
+        <div>
+          <p class="label">Build</p>
+          <h3>What we do</h3>
+          <p>Development and publishing of software: mobile applications, PC and console games, web applications and tools.</p>
+        </div>
+        <div>
+          <p class="label">Publish</p>
+          <h3>Where to find us</h3>
+          <p>Our apps and games are published on Google Play, Steam and other online stores.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <p class="num">03</p>
+      <h2>Contact</h2>
+      <p>Questions, support or business enquiries:</p>
+      <a class="mail" href="mailto:cosmicbunny880@gmail.com">cosmicbunny880@gmail.com</a>
+      <p class="foot">&copy; 2026 Cloud Cinder Technology. All rights reserved.</p>
+    </section>
+  </div>
+</div>
+
+<svg class="scene" id="front" aria-hidden="true">
+  <defs>
+    <linearGradient id="sheenTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".30"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity=".14"/></linearGradient>
+    <linearGradient id="sheenL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient>
+    <linearGradient id="sheenR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".07"/></linearGradient>
+  </defs>
+</svg>
+<div class="drops" aria-hidden="true"></div><div class="drops" aria-hidden="true"></div>
+<div class="flash" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header>
+  <a class="brand" href="#top"><img src="logo.svg" alt=""><span>Cloud Cinder Technology</span></a>
+  <a class="contact" href="#contact">Contact</a>
+</header>
+<div class="hint" aria-hidden="true"><span>Scroll</span><i></i></div>
+<noscript><style>#content { position: static; } #spacer, .clone { display: none; }</style></noscript>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches, fine = matchMedia('(pointer: fine)').matches;
+  var content = document.getElementById('content'), page = content.firstElementChild, spacer = document.getElementById('spacer');
+  var canvas = document.getElementById('sky'), ctx = canvas.getContext('2d');
+  var back = document.getElementById('back'), front = document.getElementById('front');
+  var wet = [].slice.call(document.querySelectorAll('.drops'));
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = 1, H = 1, S = 1, cx = 0, cy = 0, maxY = 1, y = 0, t = 0, last = 0;
+  var D = 3.4, ca = 1, sa = 0, cb = 1, sb = 0;             // camera distance (box units) and the view angles
+  var tmx = 0, tmy = 0, mx = 0, my = 0, flash = 0, nextFlash = 3, refire = 0;
+
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function smooth(v) { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); }
+  function tri(s, c) { return smooth(1 - Math.abs(s - c)); }
+  function mix(a, b, k) { return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; }
+  function rgba(c, a) { return 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a.toFixed(3) + ')'; }
+  function set(name, v) { root.style.setProperty(name, v); }
+  function seeded(seed) { return function () { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
+
+  // the box: corners 0..7 (bit 1 = +x, bit 2 = top, bit 4 = +z), the plate under it, and both mirrored in the floor
+  var Y0 = -0.46, Y1 = 0.54, P0 = -0.5;
+  function corners(y0, y1, mirror) {
+    var c = [];
+    for (var i = 0; i < 8; i++) { var yy = (i & 2) ? y1 : y0; if (mirror) yy = -1 - yy; c.push([(i & 1) ? 0.5 : -0.5, yy, (i & 4) ? 0.5 : -0.5]); }
+    return c;
+  }
+  var BOX = corners(Y0, Y1), PLATE = corners(P0, Y0), BOXM = corners(Y0, Y1, true), PLATEM = corners(P0, Y0, true);
+  var FACES = [[0, 4, 6, 2], [1, 3, 7, 5], [0, 1, 5, 4], [2, 6, 7, 3], [0, 2, 3, 1], [4, 5, 7, 6]];   // -x +x -y +y -z +z
+  var NORMALS = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]];
+  var EDGES = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  var EDGE_FACES = EDGES.map(function (e) {
+    var f = [];
+    for (var i = 0; i < 6; i++) if (FACES[i].indexOf(e[0]) >= 0 && FACES[i].indexOf(e[1]) >= 0) f.push(i);
+    return f;
+  });
+
+  function view(a, b) { ca = Math.cos(a); sa = Math.sin(a); cb = Math.cos(b); sb = Math.sin(b); }
+  function proj(p) {                                       // yaw, then pitch (camera above), then perspective
+    var x1 = p[0] * ca + p[2] * sa, z1 = p[2] * ca - p[0] * sa;
+    var y2 = p[1] * cb + z1 * sb, z2 = z1 * cb - p[1] * sb;
+    var k = 1 / (1 + z2 / D);
+    return [cx + S * x1 * k, cy - S * y2 * k, z2, k];
+  }
+  function facing(n, c) {                                  // does the face with normal n at centre c look at the camera?
+    var nx = n[0] * ca + n[2] * sa, nz1 = n[2] * ca - n[0] * sa, ny = n[1] * cb + nz1 * sb, nz = nz1 * cb - n[1] * sb;
+    var px = c[0] * ca + c[2] * sa, pz1 = c[2] * ca - c[0] * sa, py = c[1] * cb + pz1 * sb, pz = pz1 * cb - c[1] * sb;
+    return nx * px + ny * py + nz * (pz + D) < 0;
+  }
+  function hull(pts) {                                     // convex hull, monotone chain
+    var p = pts.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }), lo = [], up = [], i;
+    function cross(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+    for (i = 0; i < p.length; i++) { while (lo.length > 1 && cross(lo[lo.length - 2], lo[lo.length - 1], p[i]) <= 0) lo.pop(); lo.push(p[i]); }
+    for (i = p.length - 1; i >= 0; i--) { while (up.length > 1 && cross(up[up.length - 2], up[up.length - 1], p[i]) <= 0) up.pop(); up.push(p[i]); }
+    lo.pop(); up.pop();
+    return lo.concat(up);
+  }
+  function pt(p) { return p[0].toFixed(1) + 'px ' + p[1].toFixed(1) + 'px'; }
+  function poly(pts) { return pts.map(pt).join(', '); }
+  function points(pts) { return pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+  function bbox(pts) {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    pts.forEach(function (p) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); });
+    return [x0, y0, x1 - x0, y1 - y0];
+  }
+
+  // the SVG parts, made once and moved every frame
+  function el(parent, name, attrs) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+  var gHidden = el(back, 'g'), gRefl = el(back, 'g', { mask: 'url(#refl)', opacity: 0.4 }), gPlate = el(back, 'g'), gBackEdges = el(back, 'g');
+  var gFront = el(front, 'g'), gFrontEdges = el(front, 'g');
+  var fade = document.getElementById('fade'), reflRect = document.getElementById('reflRect');
+  var faceHidden = [], faceFront = [], plateSide = [], reflSide = [], backEdge = [], frontGlow = [], frontEdge = [], reflEdge = [], i;
+  for (i = 0; i < 6; i++) {
+    faceHidden.push(el(gHidden, 'polygon', { fill: 'rgba(255,255,255,0.03)' }));
+    plateSide.push(el(gPlate, 'polygon', { fill: 'url(#plateSide)' }));
+    reflSide.push(el(gRefl, 'polygon', { fill: '#9aa0a8' }));
+  }
+  var plateTop = el(gPlate, 'polygon', { fill: 'url(#plate)' }), reflTop = el(gRefl, 'polygon', { fill: '#c9ced5' });
+  for (i = 0; i < 3; i++) faceFront.push(el(gFront, 'polygon', { fill: 'url(#sheenTop)' }));
+  for (i = 0; i < 12; i++) {
+    reflEdge.push(el(gRefl, 'line', { stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 1 }));
+    backEdge.push(el(gBackEdges, 'line', { stroke: 'rgba(255,255,255,0.16)', 'stroke-width': 1 }));
+    frontGlow.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.14)', 'stroke-width': 4, 'stroke-linecap': 'round' }));
+    frontEdge.push(el(gFrontEdges, 'line', { stroke: 'rgba(255,255,255,0.85)', 'stroke-width': 1.2 }));
+  }
+  function line(e, a, b) { e.setAttribute('x1', a[0].toFixed(1)); e.setAttribute('y1', a[1].toFixed(1)); e.setAttribute('x2', b[0].toFixed(1)); e.setAttribute('y2', b[1].toFixed(1)); }
+  function show(e, on) { e.setAttribute('display', on ? '' : 'none'); }
+
+  // the text inside the glass: one copy, clipped to the box
+  var clone = document.createElement('div'), clonePage = page.cloneNode(true);
+  clone.className = 'clone'; clone.setAttribute('aria-hidden', 'true');
+  [].forEach.call(clonePage.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+  clone.appendChild(clonePage); document.body.insertBefore(clone, front);
+
+  // rain on the inside of the panes
+  function dew(seed) {
+    var r = seeded(seed), parts = [];
+    for (var i = 0; i < 60; i++) {
+      var sz = 2 + r() * 6;
+      parts.push('radial-gradient(' + sz.toFixed(1) + 'px circle at ' + (r() * 100).toFixed(1) + '% ' + (r() * 100).toFixed(1) + '%, rgba(255,255,255,.55) 0, rgba(255,255,255,.18) 45%, rgba(255,255,255,0) 70%)');
+    }
+    return parts.join(',');
+  }
+  wet[0].style.backgroundImage = dew(3); wet[1].style.backgroundImage = dew(9);
+
+  // the cloud: three renders from Blender (tools/cloud_render.py: a cumulus modelled as a density grid, a greyer
+  // second cloud behind right, lit from above and behind), one per weather, cross-faded by the scroll; drawn inside
+  // the box and mirrored in the floor. Each render is an orthographic frame 1.5 box widths wide, centred on the
+  // cloud's origin.
+  var clouds = {}, cloudAt = { ox: 0, oy: 0.03, w: [1, 0, 0] };
+  ['calm', 'rain', 'sun'].forEach(function (k) { var im = new Image(); im.src = 'cloud_' + k + '.webp'; clouds[k] = im; });
+  function renderCloud(wr, ws) {                       // once per frame: where the cloud is and which renders show
+    cloudAt.oy = 0.03 - 0.05 * wr + 0.02 * ws + (still ? 0 : Math.sin(t * 0.23) * 0.006);
+    cloudAt.ox = (still ? 0 : Math.sin(t * 0.17) * 0.008);
+    cloudAt.w = [Math.max(0, 1 - wr - ws), wr, ws];
+  }
+  function cloud(mirror) {
+    var c = proj([cloudAt.ox, mirror ? -1 - cloudAt.oy : cloudAt.oy, 0]), base = ctx.globalAlpha, keys = ['calm', 'rain', 'sun'];
+    var w = 1.5 * S * c[3], h = w * 1170 / 1800;       // the renders' frame, 1.5 box widths wide: the main cloud ~0.85
+    ctx.save();
+    if (mirror) { ctx.translate(c[0], c[1]); ctx.scale(1, -1); ctx.translate(-c[0], -c[1]); }
+    for (var i = 0; i < 3; i++) {
+      var im = clouds[keys[i]];
+      if (cloudAt.w[i] < 0.01 || !im.complete || !im.naturalWidth) continue;
+      ctx.globalAlpha = base * cloudAt.w[i]; ctx.drawImage(im, c[0] - w / 2, c[1] - h / 2, w, h);
+    }
+    ctx.globalAlpha = base; ctx.restore();
+  }
+  function disc(c, r, squash, fill) {                     // a flat ellipse on the plate
+    ctx.save(); ctx.translate(c[0], c[1]); ctx.scale(1, squash); ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); ctx.fill(); ctx.restore();
+  }
+  function shadow(wr) {
+    var c = proj([0, Y0, 0]), r = 0.42 * S * c[3], g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, rgba([30, 40, 60], 0.42 - 0.1 * wr)); g.addColorStop(1, rgba([30, 40, 60], 0));
+    disc(c, r, 0.3, g);
+  }
+
+  // rain inside the box, ripples where it lands
+  var drops = [], ripples = [], rnd = seeded(7);
+  for (i = 0; i < 240; i++) drops.push({ x: rnd() * 0.9 - 0.45, z: rnd() * 0.9 - 0.45, y: Y0 + rnd() * 0.3, v: 0.9 + rnd() * 0.5, l: 0.04 + rnd() * 0.05 });
+  function rain(w, dt) {
+    var n = Math.round(drops.length * w), i, d;
+    ctx.strokeStyle = rgba([205, 220, 240], 0.5 * w); ctx.lineWidth = 1; ctx.beginPath();
+    for (i = 0; i < n; i++) {
+      d = drops[i];
+      if (!still) d.y -= d.v * dt;
+      if (d.y < Y0) {
+        if (ripples.length < 50 && Math.random() < 0.2) ripples.push({ x: d.x, z: d.z, t: 0 });
+        d.y = -0.14 - Math.random() * 0.08; d.x = Math.random() * 0.9 - 0.45; d.z = Math.random() * 0.9 - 0.45;
+      }
+      var a = proj([d.x, d.y, d.z]), b = proj([d.x, Math.min(d.y + d.l, -0.12), d.z]);
+      ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+    }
+    ctx.stroke();
+    for (i = ripples.length - 1; i >= 0; i--) {
+      var rp = ripples[i]; rp.t += dt;
+      if (rp.t > 0.7) { ripples.splice(i, 1); continue; }
+      var c = proj([rp.x, Y0, rp.z]), r = (0.01 + rp.t * 0.07) * S * c[3];
+      ctx.strokeStyle = rgba([220, 232, 248], 0.5 * w * (1 - rp.t / 0.7)); ctx.beginPath(); ctx.ellipse(c[0], c[1], r, r * 0.28, 0, 0, 6.2832); ctx.stroke();
+    }
+  }
+
+  // sun: beams from the lamp through the top pane, a pool of light on the plate, a glow behind the cloud
+  function sunlight(w) {
+    var top = proj([0, Y1 + 0.35, 0]), i;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (i = 0; i < 6; i++) {
+      var ang = (i - 2.5) * 0.16 + (still ? 0 : Math.sin(t * 0.4 + i) * 0.03), len = S * 1.15;
+      var x1 = top[0] + Math.sin(ang) * len, y1 = top[1] + Math.cos(ang) * len, px = Math.cos(ang), py = -Math.sin(ang), wb = S * 0.08;
+      var g = ctx.createLinearGradient(top[0], top[1], x1, y1);
+      g.addColorStop(0, 'rgba(255,226,170,0)'); g.addColorStop(0.3, rgba([255, 226, 170], 0.11 * w)); g.addColorStop(1, 'rgba(255,226,170,0)');
+      ctx.beginPath(); ctx.moveTo(top[0] - px * 2, top[1] - py * 2); ctx.lineTo(top[0] + px * 2, top[1] + py * 2);
+      ctx.lineTo(x1 + px * wb, y1 + py * wb); ctx.lineTo(x1 - px * wb, y1 - py * wb); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    }
+    var c = proj([0, Y0, 0]), r = 0.42 * S * c[3], g2 = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g2.addColorStop(0, rgba([255, 220, 160], 0.4 * w)); g2.addColorStop(1, rgba([255, 220, 160], 0));
+    disc(c, r, 0.3, g2);
+    var h = proj([0, 0.22, 0]), hr = 0.5 * S * h[3], g3 = ctx.createRadialGradient(h[0], h[1], 0, h[0], h[1], hr);
+    g3.addColorStop(0, rgba([255, 214, 150], 0.3 * w)); g3.addColorStop(1, rgba([255, 214, 150], 0));
+    ctx.fillStyle = g3; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2);
+    ctx.restore();
+  }
+  function lightning(f) {
+    var h = proj([0, 0.1, 0]), hr = 0.55 * S * h[3], g = ctx.createRadialGradient(h[0], h[1], 0, h[0], h[1], hr);
+    g.addColorStop(0, rgba([235, 240, 255], 0.9 * f)); g.addColorStop(1, rgba([235, 240, 255], 0));
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2); ctx.restore();
+  }
+
+  var lastYaw = 0, lastPitch = 0, vars = {};
+  function setVar(name, v) { v = v.toFixed(3); if (vars[name] !== v) { vars[name] = v; set(name, v); } }
+  function frame(now) {
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0, i, f;
+    last = now; t += dt;
+    var s = y / H;                                         // screens scrolled
+    var wr = tri(s, 1), ws = tri(s, 2), wc = Math.max(0, 1 - wr - ws);
+    mx += (tmx - mx) * 0.06; my += (tmy - my) * 0.06;
+    var yaw = Math.round((32 + 3 * mx) * 4) / 4, pitch = Math.round((11 + 1.5 * my) * 4) / 4;
+    view(yaw * Math.PI / 180, pitch * Math.PI / 180);
+    var moved = yaw !== lastYaw || pitch !== lastPitch; lastYaw = yaw; lastPitch = pitch;
+
+    if (wr > 0.7 && !still) { nextFlash -= dt; if (nextFlash < 0) { flash = 1; refire = 0.14; nextFlash = 4 + Math.random() * 6; } }
+    if (refire > 0) { refire -= dt; if (refire <= 0) flash = Math.max(flash, 0.7); }
+    flash *= Math.exp(-dt * 8);
+    setVar('--calm', wc); setVar('--rain', wr); setVar('--sun', ws);
+    setVar('--flash', 0.14 * flash); setVar('--hint', 1 - clamp(s * 2.5, 0, 1));
+
+    var P = BOX.map(proj), Q = PLATE.map(proj), PM = BOXM.map(proj), QM = PLATEM.map(proj);
+    var vis = NORMALS.map(function (n) { return facing(n, [n[0] * 0.5, 0.04 + n[1] * 0.5, n[2] * 0.5]); });
+    var floorY = 0;
+    for (i = 0; i < 8; i++) floorY = Math.max(floorY, Q[i][1]);
+    var hp = hull(P.concat(Q));
+
+    if (moved) {
+      set('--base', proj([0, P0, 0])[1].toFixed(1) + 'px'); set('--floor', (cy + 0.12 * S).toFixed(1) + 'px');
+      fade.setAttribute('y1', floorY.toFixed(1)); fade.setAttribute('y2', (floorY + 0.5 * S).toFixed(1));
+      var slot = 0, wetSlot = 0;
+      for (f = 0; f < 6; f++) {
+        var pts = FACES[f].map(function (k) { return P[k]; }), str = points(pts);
+        faceHidden[f].setAttribute('points', str); show(faceHidden[f], !vis[f]);
+        var side = f !== 2 && f !== 3;
+        plateSide[f].setAttribute('points', points(FACES[f].map(function (k) { return Q[k]; }))); show(plateSide[f], side && vis[f]);
+        reflSide[f].setAttribute('points', points(FACES[f].map(function (k) { return QM[k]; }))); show(reflSide[f], side && vis[f]);
+        if (vis[f] && slot < 3) {
+          var b = bbox(pts), fx = b[0] + b[2] / 2;
+          faceFront[slot].setAttribute('points', str);
+          faceFront[slot].setAttribute('fill', f === 3 ? 'url(#sheenTop)' : fx < cx ? 'url(#sheenL)' : 'url(#sheenR)');
+          show(faceFront[slot], true);
+          if (side && wetSlot < 2) {
+            var w = wet[wetSlot++].style;
+            w.display = ''; w.left = b[0] + 'px'; w.top = b[1] + 'px'; w.width = b[2] + 'px'; w.height = b[3] + 'px';
+            w.clipPath = 'polygon(' + poly(pts.map(function (p) { return [p[0] - b[0], p[1] - b[1]]; })) + ')';
+          }
+          slot++;
+        }
+      }
+      for (; slot < 3; slot++) show(faceFront[slot], false);
+      for (; wetSlot < 2; wetSlot++) wet[wetSlot].style.display = 'none';
+      // the text inside the box, shifted down a little like a refraction
+      clone.style.clipPath = 'polygon(' + poly(hp) + ')';
+      plateTop.setAttribute('points', points(FACES[3].map(function (k) { return Q[k]; })));
+      reflTop.setAttribute('points', points(FACES[2].map(function (k) { return QM[k]; })));
+      for (i = 0; i < 12; i++) {
+        var a = P[EDGES[i][0]], e = P[EDGES[i][1]], isFront = vis[EDGE_FACES[i][0]] || vis[EDGE_FACES[i][1]];
+        line(backEdge[i], a, e); show(backEdge[i], !isFront);
+        line(frontEdge[i], a, e); line(frontGlow[i], a, e); show(frontEdge[i], isFront); show(frontGlow[i], isFront);
+        line(reflEdge[i], PM[EDGES[i][0]], PM[EDGES[i][1]]);
+      }
+      content.style.clipPath = 'polygon(evenodd, 0 0, ' + W + 'px 0, ' + W + 'px ' + H + 'px, 0 ' + H + 'px, 0 0, ' + poly(hp) + ', ' + pt(hp[0]) + ')';
+    }
+    page.style.transform = 'translate3d(0,' + (-y).toFixed(2) + 'px,0)';
+    clonePage.style.transform = 'translate3d(0,' + (0.01 * S - y).toFixed(2) + 'px,0)';
+
+    // the canvas: the cloud's reflection in the floor, then everything inside the box
+    ctx.clearRect(0, 0, W, H);
+    renderCloud(wr, ws);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, floorY, W, H - floorY); ctx.clip();
+    ctx.globalAlpha = 0.18; cloud(true); ctx.globalAlpha = 1;
+    var fg = ctx.createLinearGradient(0, floorY, 0, floorY + 0.5 * S); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = fg; ctx.fillRect(0, floorY, W, H - floorY); ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+    ctx.save(); ctx.beginPath();
+    ctx.moveTo(hp[0][0], hp[0][1]); for (i = 1; i < hp.length; i++) ctx.lineTo(hp[i][0], hp[i][1]); ctx.closePath(); ctx.clip();
+    if (ws > 0.01) sunlight(ws);
+    shadow(wr);
+    cloud(false);
+    if (wr > 0.01) rain(wr, dt);
+    if (flash > 0.02) lightning(flash);
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+
+  var lastW = 0, lastH = 0;
+  function layout(force) {
+    if (!force && innerWidth === lastW && Math.abs(innerHeight - lastH) < 150) return;   // the phone's address bar is not a resize
+    lastW = W = innerWidth; lastH = H = innerHeight;
+    var dpr = Math.min(W * H > 2500000 ? 1 : 1.5, devicePixelRatio || 1);    // a big screen gets a 1:1 canvas
+    S = Math.min(H * 0.6, W * 0.62); cx = W / 2; cy = H * 0.5;        // the box is about 1.4 S wide on screen
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    [back, front].forEach(function (s) { s.setAttribute('viewBox', '0 0 ' + W + ' ' + H); });
+    reflRect.setAttribute('width', W); reflRect.setAttribute('height', H);
+    set('--vh', H + 'px'); set('--S', S.toFixed(1) + 'px');
+    spacer.style.height = page.offsetHeight + 'px'; maxY = Math.max(1, page.offsetHeight - H); y = clamp(scrollY, 0, maxY);
+    lastYaw = -1;
+  }
+  addEventListener('resize', function () { layout(false); });
+  addEventListener('scroll', function () { y = clamp(scrollY, 0, maxY); }, { passive: true });
+  if (fine && !still) addEventListener('pointermove', function (e) { tmx = (e.clientX / W - 0.5) * 2; tmy = (e.clientY / H - 0.5) * 2; });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { last = 0; requestAnimationFrame(frame); } });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(true); });
+  addEventListener('load', function () { layout(true); });
+
+  [].forEach.call(document.querySelectorAll('header a[href^="#"]'), function (a) {
+    a.addEventListener('click', function (e) {
+      var target = page.querySelector(a.getAttribute('href'));
+      if (!target) return;
+      e.preventDefault(); scrollTo({ top: target.offsetTop, behavior: still ? 'auto' : 'smooth' });
+    });
+  });
+
+  (function () {                                          // film grain, so the dark gradients don't band
+    var c = document.createElement('canvas'); c.width = c.height = 96;
+    var x = c.getContext('2d'), img = x.createImageData(96, 96), d = img.data;
+    for (var i = 0; i < d.length; i += 4) { d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = Math.random() * 48; }
+    x.putImageData(img, 0, 0); document.querySelector('.grain').style.backgroundImage = 'url(' + c.toDataURL() + ')';
+  })();
+
+  layout(true);
+  if (location.hash) { var h = page.querySelector(location.hash); if (h) scrollTo(0, h.offsetTop); }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
