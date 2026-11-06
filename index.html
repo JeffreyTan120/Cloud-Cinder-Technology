@@ -14,13 +14,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   /*
-    A dark studio, one spotlight, a glass box with a cloud in it. The page scrolls through the box: the text is
-    drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (a copy
-    clipped to the box, shifted down a little like a refraction, blended so it reads over the cloud too). The
-    weather follows the scroll: calm at the top, rain in the second screen, sunshine in the third, calm at the end.
+    A dark studio, one spotlight, a glass box with a little world in it. The page scrolls through the box: the text
+    is drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (a copy
+    clipped to the box, shifted down a little like a refraction, blended so it reads over the scene too). The scene
+    follows the scroll, one per screen, taken from the seasonal skins of the internal UI: a tank of butterflyfish at
+    the top, the water drains to a pool of rubber ducks, then autumn leaves fall on the plate, then snow.
     The box only moves with the mouse, never with the scroll, so scrolling changes no clip paths (that was slow).
+    (The cloud version of the page is kept as cloud.html.)
   */
-  :root { --vh: 100vh; --S: 400px; --calm: 1; --rain: 0; --sun: 0; --flash: 0; --base: 70vh; --floor: 60vh; --hint: 1; }
+  :root { --vh: 100vh; --S: 400px; --s0: 1; --s1: 0; --s2: 0; --s3: 0; --frost: 0; --base: 70vh; --floor: 60vh; --hint: 1; }
   * { box-sizing: border-box; }
   html { background: #0b0d10; color: #eef0f3; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
   body { margin: 0; overflow-x: hidden; }
@@ -29,24 +31,26 @@
   /* the room */
   .room { position: fixed; inset: 0; overflow: hidden; }
   .wall { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 15%, #1b1e24 0%, #0b0d10 70%); }
-  .spot { position: absolute; inset: 0; background: radial-gradient(60% 80% at 50% -8%, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); opacity: var(--calm); }
-  .spot.rain { background: radial-gradient(60% 80% at 50% -8%, rgba(150,170,200,.11), rgba(150,170,200,0) 70%); opacity: var(--rain); }
-  .spot.sun { background: radial-gradient(60% 85% at 50% -8%, rgba(255,212,150,.42), rgba(255,212,150,0) 72%); opacity: var(--sun); }
+  /* one light per scene: sea-green over the tank, summer sun over the pool, low amber for autumn, cold white for snow */
+  .spot { position: absolute; inset: 0; background: radial-gradient(60% 80% at 50% -8%, rgba(225,235,255,.2), rgba(225,235,255,0) 70%); opacity: calc(var(--s3) + var(--s0) * .4); }
+  .spot.sea { background: radial-gradient(60% 80% at 50% -8%, rgba(120,205,225,.24), rgba(120,205,225,0) 70%); opacity: var(--s0); }
+  .spot.sun { background: radial-gradient(60% 85% at 50% -8%, rgba(255,212,150,.42), rgba(255,212,150,0) 72%); opacity: var(--s1); }
+  .spot.amber { background: radial-gradient(60% 85% at 50% -8%, rgba(255,160,85,.3), rgba(255,160,85,0) 72%); opacity: var(--s2); }
   .lamp { position: absolute; left: 50%; top: -7vh; width: 36vw; min-width: 260px; height: 13vh; transform: translateX(-50%); border-radius: 50%;
-          background: radial-gradient(closest-side, rgba(255,255,255,.6), rgba(255,255,255,0)); filter: blur(6px); opacity: calc(var(--calm) + var(--rain) * .4); }
-  .lamp.sun { width: 46vw; background: radial-gradient(closest-side, rgba(255,230,175,.95), rgba(255,200,120,0)); opacity: var(--sun); }
+          background: radial-gradient(closest-side, rgba(255,255,255,.6), rgba(255,255,255,0)); filter: blur(6px); opacity: calc(var(--s0) + var(--s3)); }
+  .lamp.sun { width: 46vw; background: radial-gradient(closest-side, rgba(255,230,175,.95), rgba(255,200,120,0)); opacity: calc(var(--s1) + var(--s2) * .6); }
   .floor { position: absolute; left: 0; right: 0; top: var(--floor); bottom: 0; background: linear-gradient(to bottom, #1d2128 0%, #0e1013 45%, #0a0b0e 100%); }
   .floor::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 30%; background: linear-gradient(to bottom, rgba(255,255,255,.06), rgba(255,255,255,0)); }
   .pool { position: absolute; left: 50%; top: var(--base); width: 130vmin; height: 34vmin; transform: translate(-50%, -50%); border-radius: 50%;
-          background: radial-gradient(closest-side, rgba(255,255,255,.15), rgba(255,255,255,0)); opacity: calc(var(--calm) + var(--rain) * .35); }
-  .pool.sun { background: radial-gradient(closest-side, rgba(255,196,120,.36), rgba(255,196,120,0)); opacity: var(--sun); }
+          background: radial-gradient(closest-side, rgba(255,255,255,.15), rgba(255,255,255,0)); opacity: calc(var(--s3) + var(--s0) * .4); }
+  .pool.sea { background: radial-gradient(closest-side, rgba(110,200,225,.26), rgba(110,200,225,0)); opacity: var(--s0); }
+  .pool.sun { background: radial-gradient(closest-side, rgba(255,196,120,.36), rgba(255,196,120,0)); opacity: calc(var(--s1) + var(--s2) * .7); }
 
   /* the box */
-  svg.scene, #sky, .flash, .grain, #content, .clone { position: fixed; inset: 0; width: 100%; height: 100%; }
-  svg.scene, #sky, .flash, .grain { pointer-events: none; }
+  svg.scene, #sky, .grain, #content, .clone { position: fixed; inset: 0; width: 100%; height: 100%; }
+  svg.scene, #sky, .grain { pointer-events: none; }
   svg.scene { overflow: visible; }
-  .drops { position: fixed; left: 0; top: 0; pointer-events: none; opacity: var(--rain); background-size: 100% 100%; }
-  .flash { background: #d8e2ff; opacity: var(--flash); }
+  .drops { position: fixed; left: 0; top: 0; pointer-events: none; opacity: var(--frost); background-size: 100% 100%; }   /* frost on the panes in winter */
   .grain { opacity: .07; background-repeat: repeat; }
 
   /* the text, outside and inside the glass */
@@ -101,10 +105,10 @@
 
 <div class="room" aria-hidden="true">
   <div class="wall"></div>
-  <div class="spot"></div><div class="spot rain"></div><div class="spot sun"></div>
+  <div class="spot"></div><div class="spot sea"></div><div class="spot sun"></div><div class="spot amber"></div>
   <div class="lamp"></div><div class="lamp sun"></div>
   <div class="floor"></div>
-  <div class="pool"></div><div class="pool sun"></div>
+  <div class="pool"></div><div class="pool sea"></div><div class="pool sun"></div>
 </div>
 
 <svg class="scene" id="back" aria-hidden="true">
@@ -181,7 +185,6 @@
   </defs>
 </svg>
 <div class="drops" aria-hidden="true"></div><div class="drops" aria-hidden="true"></div>
-<div class="flash" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 
 <header>
@@ -202,7 +205,7 @@
   var NS = 'http://www.w3.org/2000/svg';
   var W = 1, H = 1, S = 1, cx = 0, cy = 0, maxY = 1, y = 0, t = 0, last = 0;
   var D = 3.4, ca = 1, sa = 0, cb = 1, sb = 0;             // camera distance (box units) and the view angles
-  var tmx = 0, tmy = 0, mx = 0, my = 0, flash = 0, nextFlash = 3, refire = 0;
+  var tmx = 0, tmy = 0, mx = 0, my = 0;
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function smooth(v) { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); }
@@ -286,116 +289,206 @@
   [].forEach.call(clonePage.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
   clone.appendChild(clonePage); document.body.insertBefore(clone, front);
 
-  // rain on the inside of the panes
-  function dew(seed) {
-    var r = seeded(seed), parts = [];
-    for (var i = 0; i < 60; i++) {
-      var sz = 2 + r() * 6;
-      parts.push('radial-gradient(' + sz.toFixed(1) + 'px circle at ' + (r() * 100).toFixed(1) + '% ' + (r() * 100).toFixed(1) + '%, rgba(255,255,255,.55) 0, rgba(255,255,255,.18) 45%, rgba(255,255,255,0) 70%)');
+  // frost on the inside of the panes in winter: fine crystals, thicker towards the bottom corners
+  function frost(seed) {
+    var r = seeded(seed), parts = ['radial-gradient(70% 55% at 0% 100%, rgba(235,244,255,.22), rgba(235,244,255,0))',
+                                   'radial-gradient(70% 55% at 100% 100%, rgba(235,244,255,.22), rgba(235,244,255,0))'];
+    for (var i = 0; i < 90; i++) {
+      var sz = 1 + r() * 3.5, yy = 100 - Math.pow(r(), 1.6) * 100;
+      parts.push('radial-gradient(' + sz.toFixed(1) + 'px circle at ' + (r() * 100).toFixed(1) + '% ' + yy.toFixed(1) + '%, rgba(240,248,255,.7) 0, rgba(240,248,255,.2) 50%, rgba(240,248,255,0) 75%)');
     }
     return parts.join(',');
   }
-  wet[0].style.backgroundImage = dew(3); wet[1].style.backgroundImage = dew(9);
+  wet[0].style.backgroundImage = frost(3); wet[1].style.backgroundImage = frost(9);
 
-  // the cloud: three renders from Blender (tools/cloud_render.py: a dome of lobes as a real volume, a second cloud
-  // behind right, lit by one lamp above), one per weather, cross-faded by the scroll; drawn inside the box and
-  // mirrored in the floor. The render's centre is the main cloud's centre.
-  var clouds = {}, cloudAt = { ox: -0.04, oy: 0.05, w: [1, 0, 0] };
-  ['calm', 'rain', 'sun'].forEach(function (k) { var im = new Image(); im.src = 'cloud_' + k + '.webp'; clouds[k] = im; });
-  function renderCloud(wr, ws) {                       // once per frame: where the cloud is and which renders show
-    cloudAt.oy = 0.05 - 0.06 * wr + 0.03 * ws + (still ? 0 : Math.sin(t * 0.23) * 0.006);
-    cloudAt.ox = -0.04 + (still ? 0 : Math.sin(t * 0.17) * 0.008);
-    cloudAt.w = [Math.max(0, 1 - wr - ws), wr, ws];
+  // the four scenes inside the glass, one per screen of scroll. They come from the seasonal skins of the internal UI
+  // (internal-ui/src/seasons): the same glyphs, the same four butterflyfish colourings, the same drawn rubber duck.
+  // Here they live in the box in 3D: projected like the box itself, sorted by depth, mirrored in the floor. Every
+  // motion is a function of time, not state, so nothing drifts off or piles up however long the page is open.
+  var EMOJI = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif';
+  function sprite(draw) { var c = document.createElement('canvas'); c.width = c.height = 128; draw(c.getContext('2d')); return c; }
+  function glyph(ch, filter, color) {
+    return sprite(function (x) {
+      if (filter) x.filter = filter;
+      x.font = '100px ' + EMOJI; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = color || '#fff';
+      x.fillText(ch, 64, 68);
+    });
   }
-  function cloud(mirror) {
-    var c = proj([cloudAt.ox, mirror ? -1 - cloudAt.oy : cloudAt.oy, 0]), base = ctx.globalAlpha, keys = ['calm', 'rain', 'sun'];
-    var w = 1.64 * S * c[3], h = w * 1430 / 2000;      // the renders' frame drawn 1.64 box widths wide: the main cloud ~0.67
-    ctx.save();
-    if (mirror) { ctx.translate(c[0], c[1]); ctx.scale(1, -1); ctx.translate(-c[0], -c[1]); }
-    for (var i = 0; i < 3; i++) {
-      var im = clouds[keys[i]];
-      if (cloudAt.w[i] < 0.01 || !im.complete || !im.naturalWidth) continue;
-      ctx.globalAlpha = base * cloudAt.w[i]; ctx.drawImage(im, c[0] - w / 2, c[1] - h / 2, w, h);
+  // raccoon, copperband, Klein's and triangle butterflyfish: Unicode has one tropical fish, so these are recolourings
+  var FISH = ['hue-rotate(-8deg) saturate(1.2)', 'hue-rotate(-24deg) saturate(0.6) brightness(1.25)',
+              'hue-rotate(-16deg) saturate(0.8) brightness(0.8)', 'hue-rotate(6deg) saturate(0.68) brightness(1.12) contrast(1.2)']
+             .map(function (f) { return glyph('🐠', f); });
+  var LEAF = [glyph('🍂'), glyph('🍁', 'hue-rotate(32deg) saturate(1.1)'), glyph('🌰')];   // Windows draws the maple pink: turn it red-orange
+  var FLAKE = [glyph('❄️'), glyph('❅', null, '#f2f7ff'), glyph('❆', null, '#f2f7ff')];
+  var duck = null, duckImg = new Image();               // Unicode has a mallard but no rubber duck, so it is drawn
+  duckImg.onload = function () { duck = sprite(function (x) { x.drawImage(duckImg, 0, 0, 128, 128); }); };
+  duckImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-2.5 0 32 32">' +
+    '<path d="M27 21c0 4.2-5 7-11.5 7S4 25.2 4 21c0-2.7 2.2-4.5 5.5-4.5h12C24.8 16.5 27 18.3 27 21Z" fill="#FBBF24"/>' +
+    '<path d="M4.4 22.6c1.6 3.2 6 5.4 11.1 5.4s9.5-2.2 11.1-5.4c-1.9 2-6.1 3.4-11.1 3.4S6.3 24.6 4.4 22.6Z" fill="#F59E0B"/>' +
+    '<circle cx="10.5" cy="11" r="7" fill="#FBBF24"/><path d="M3.9 11.2 0 12.8l3.9 2.1c.9-1.2.9-2.9 0-4.1Z" fill="#F97316"/>' +
+    '<circle cx="8.6" cy="9.4" r="1.5" fill="#1F2937"/><circle cx="8.15" cy="8.95" r=".5" fill="#fff"/>' +
+    '<path d="M8 5.6c1.5-1.1 3.6-1.3 5.2-.5-1.7-.2-3.4.2-4.7 1.2-.5.4-1 0-.5-.7Z" fill="#FDE68A"/></svg>');
+
+  // the casts, placed once from a fixed seed
+  var R = seeded(11), fish = [], bubbles = [], ducks = [], leaves = [], litter = [], snow = [];
+  for (i = 0; i < 14; i++) fish.push({ img: FISH[(R() * 4) | 0], f: R(), z: R() * 0.64 - 0.32, size: 0.06 + R() * 0.07, amp: 0.25 + R() * 0.1,
+                                       w: (0.1 + R() * 0.12) * (R() < 0.5 ? -1 : 1), ph: R() * 6.28, sway: 4 + R() * 5, sph: R() * 6.28 });
+  for (i = 0; i < 22; i++) bubbles.push({ x: R() * 0.8 - 0.4, z: R() * 0.8 - 0.4, r: 0.004 + R() * 0.008, v: 0.08 + R() * 0.1, off: R() });
+  var DUCKS = [[-0.24, -0.22], [0.22, -0.24], [0.02, 0.0], [-0.24, 0.24], [0.25, 0.22]];
+  for (i = 0; i < 5; i++) ducks.push({ cx: DUCKS[i][0], cz: DUCKS[i][1], rad: 0.04 + R() * 0.04, w: (0.12 + R() * 0.14) * (i % 2 ? -1 : 1), ph: R() * 6.28, size: 0.17 + R() * 0.06 });
+  for (i = 0; i < 26; i++) leaves.push({ k: i % 3, x: R() * 0.72 - 0.36, z: R() * 0.72 - 0.36, size: (0.05 + R() * 0.05) * (i % 3 === 2 ? 0.55 : 1), dur: 7 + R() * 6, off: R(),
+                                         drift: 0.03 + R() * 0.07, spin: (R() < 0.5 ? -1 : 1) * (1 + R() * 1.5), ph: R() * 6.28 });
+  for (i = 0; i < 12; i++) litter.push({ k: i % 2, x: R() * 0.76 - 0.38, z: R() * 0.76 - 0.38, size: 0.05 + R() * 0.04, r: R() * 6.28 });
+  for (i = 0; i < 110; i++) snow.push({ k: i < 30 ? i % 3 : -1, x: R() * 0.84 - 0.42, z: R() * 0.84 - 0.42, size: i < 30 ? 0.03 + R() * 0.03 : 0.004 + R() * 0.006,
+                                        dur: 7 + R() * 8, off: R(), drift: 0.02 + R() * 0.05, ph: R() * 6.28 });
+  var WL = [Y0 + 0.9, Y0 + 0.34];                          // water level: a full tank for the fish, a shallow pool for the ducks
+
+  // one drawable: a sprite (canvas) or 1 bubble, 2 snow dot, 3 ripple. fy squashes on screen (lying flat, mirrored),
+  // r turns it, sx flips it to face where it is going; crop keeps only the top of a sprite (a duck above the waterline).
+  var items = [];
+  function add(img, p, size, a, sx, fy, r, crop) { items.push({ img: img, x: p[0], y: p[1], z: p[2], s: size * S * p[3] * 1.28, a: a, sx: sx, fy: fy, r: r, crop: crop }); }
+  function put(it) {
+    if (it.a < 0.01) return;
+    var s = it.s;
+    ctx.save(); ctx.globalAlpha *= Math.min(1, it.a); ctx.translate(it.x, it.y);
+    if (it.img === 1) { ctx.strokeStyle = 'rgba(220,245,255,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, Math.max(1, s / 2), 0, 6.2832); ctx.stroke(); }
+    else if (it.img === 2) { ctx.fillStyle = '#f4f8ff'; ctx.beginPath(); ctx.arc(0, 0, Math.max(0.8, s / 2), 0, 6.2832); ctx.fill(); }
+    else if (it.img === 3) { ctx.strokeStyle = 'rgba(235,250,255,.9)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(0, 0, s / 2, s * 0.14, 0, 0, 6.2832); ctx.stroke(); }
+    else {
+      ctx.scale(1, it.fy); ctx.rotate(it.r); ctx.scale(it.sx, 1);
+      if (it.crop) ctx.drawImage(it.img, 0, 0, 128, 128 * it.crop, -s / 2, -s * it.crop, s, s * it.crop);
+      else ctx.drawImage(it.img, -s / 2, -s / 2, s, s);
     }
-    ctx.globalAlpha = base; ctx.restore();
+    ctx.restore();
   }
+  function at(x, y, z, m) { return proj([x, m ? -1 - y : y, z]); }
+  var stepDt = 0;
+  function turn(d, v, m) {                                 // the glyphs face left: flip the ones moving right on screen, in a quick eased turn
+    if (!m) {                                              // (the mirror pass reuses the facing the main pass set)
+      if (v > 0.002) d.tf = -1; else if (v < -0.002 || !d.tf) d.tf = 1;
+      d.sx = d.sx === undefined ? d.tf : d.sx + (d.tf - d.sx) * Math.min(1, stepDt * 7);
+    }
+    return Math.abs(d.sx) < 0.12 ? (d.sx < 0 ? -0.12 : 0.12) : d.sx;
+  }
+
+  function water(level, a, top, deep, m) {                 // the water in the box: a tinted volume and its surface
+    if (a < 0.01) return;
+    var c = corners(Y0 + 0.004, level, m).map(proj), h = hull(c), b = bbox(h), i;
+    var g = ctx.createLinearGradient(0, m ? b[1] + b[3] : b[1], 0, m ? b[1] : b[1] + b[3]);
+    g.addColorStop(0, rgba(top, 0.34 * a)); g.addColorStop(1, rgba(deep, 0.62 * a));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(h[0][0], h[0][1]); for (i = 1; i < h.length; i++) ctx.lineTo(h[i][0], h[i][1]); ctx.closePath(); ctx.fill();
+    var sf = FACES[3].map(function (k) { return c[k]; });
+    ctx.fillStyle = rgba([225, 248, 255], 0.12 * a); ctx.strokeStyle = rgba([235, 250, 255], 0.4 * a); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(sf[0][0], sf[0][1]); for (i = 1; i < 4; i++) ctx.lineTo(sf[i][0], sf[i][1]); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  function scene(m, w) {                                   // m: the mirror image in the floor; w: the four scenes' weights
+    var tt = still ? 0 : t, fy = m ? -1 : 1, wet = w[0] + w[1], i, j, d, p, q, f, v;
+    var level = wet > 0.001 ? (WL[0] * w[0] + WL[1] * w[1]) / wet : Y0, pool = wet > 0.001 ? w[1] / wet : 0;
+    items.length = 0;
+    water(level, wet, mix([110, 200, 222], [150, 225, 240], pool), mix([10, 58, 88], [40, 140, 180], pool), m);
+
+    if (w[0] > 0.01) {                                     // the reef: butterflyfish wandering the tank, turning at the glass
+      for (i = 0; i < fish.length; i++) {
+        d = fish[i];
+        var a1 = d.ph + tt * d.w, sw = 6.2832 * tt / d.sway + d.sph;
+        var x = d.amp * Math.sin(a1), vx = d.amp * d.w * Math.cos(a1);
+        var yy = Y0 + 0.1 + d.f * Math.max(0.05, level - Y0 - 0.22) + 0.022 * Math.sin(sw);
+        p = at(x, yy, d.z + 0.04 * Math.sin(tt * 0.13 + d.ph), m);
+        add(d.img, p, d.size, w[0], turn(d, vx * ca, m), fy, 0.12 * Math.cos(sw) * (vx * ca > 0 ? -1 : 1), 0);   // nose into the climb
+      }
+      for (i = 0; i < bubbles.length; i++) {
+        d = bubbles[i]; f = (tt * d.v / Math.max(0.1, level - Y0) + d.off) % 1;
+        p = at(d.x + 0.01 * Math.sin(tt * 2 + d.off * 9), Y0 + 0.02 + f * (level - Y0 - 0.03), d.z, m);
+        add(1, p, d.r, w[0] * (1 - f * f) * 0.8, 1, 1, 0, 0);
+      }
+    }
+
+    if (w[1] > 0.01 && duck) {                             // the pool: rubber ducks paddling slow circles, bobbing
+      for (i = 0; i < ducks.length; i++) {
+        d = ducks[i]; var th = d.ph + tt * d.w;
+        var dx = d.cx + d.rad * Math.cos(th), dz = d.cz + d.rad * Math.sin(th);
+        v = d.rad * d.w * (-Math.sin(th) * ca + Math.cos(th) * sa);
+        p = at(dx, level + 0.005 * Math.sin(tt * 1.4 + d.ph), dz, m);
+        add(duck, p, d.size, w[1], turn(d, v, m), fy, 0.07 * Math.sin(tt * 0.9 + d.ph), 0.78);
+        for (j = 0; j < 2; j++) {                          // rings spreading on the water around it
+          f = (tt * 0.45 + d.ph + j * 0.5) % 1; q = at(dx, level, dz, m); q[2] += 0.002;
+          add(3, q, 0.05 + f * 0.1, w[1] * 0.35 * (1 - f), 1, 1, 0, 0);
+        }
+      }
+    }
+
+    if (w[2] > 0.01) {                                     // autumn: leaves flutter down, lie on the plate a while, fade
+      for (i = 0; i < leaves.length; i++) {
+        d = leaves[i]; f = (tt / d.dur + d.off) % 1;
+        var nut = d.k === 2, fall = nut ? 0.5 : 0.8, top = Y1 - 0.05, ground = Y0 + 0.012, fl;
+        q = Math.min(1, f / fall); fl = q * 12.566 + d.ph;
+        p = at(d.x + (nut ? 0 : d.drift * Math.sin(fl)), top - (nut ? q * q : q) * (top - ground), d.z + (nut ? 0 : d.drift * 0.5 * Math.cos(fl * 0.7)), m);
+        if (f < fall) add(LEAF[d.k], p, d.size, w[2] * Math.min(1, q * 10), nut ? 1 : 0.3 + 0.7 * Math.abs(Math.cos(fl)), fy, d.ph + d.spin * q * 6.2832, 0);
+        else add(LEAF[d.k], p, d.size, w[2] * (1 - smooth(((f - fall) / (1 - fall) - 0.6) / 0.4)), 1, fy * 0.45, d.ph + d.spin * 6.2832, 0);
+      }
+      for (i = 0; i < litter.length; i++) { d = litter[i]; add(LEAF[d.k], at(d.x, Y0 + 0.008, d.z, m), d.size, w[2], 1, fy * 0.42, d.r, 0); }
+    }
+
+    if (w[3] > 0.01) {                                     // winter: snow, flakes and fine dots, settling and melting away
+      for (i = 0; i < snow.length; i++) {
+        d = snow[i]; f = (tt / d.dur + d.off) % 1; q = Math.min(1, f / 0.92);
+        p = at(d.x + d.drift * Math.sin(q * 9 + d.ph), Y1 - 0.03 - q * (Y1 - Y0 - 0.05), d.z + d.drift * 0.6 * Math.cos(q * 7 + d.ph), m);
+        var a3 = w[3] * Math.min(1, f * 12) * (f > 0.92 ? 1 - (f - 0.92) / 0.08 : 1);
+        add(d.k < 0 ? 2 : FLAKE[d.k], p, d.size, d.k < 0 ? a3 * 0.85 : a3, 1, fy, d.k < 0 ? 0 : q * 3 + d.ph, 0);
+      }
+    }
+
+    items.sort(function (a, b) { return b.z - a.z; });   // far first
+    for (i = 0; i < items.length; i++) put(items[i]);
+  }
+
   function disc(c, r, squash, fill) {                     // a flat ellipse on the plate
     ctx.save(); ctx.translate(c[0], c[1]); ctx.scale(1, squash); ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.2832); ctx.fill(); ctx.restore();
   }
-  function shadow(wr) {
-    var c = proj([0, Y0, 0]), r = 0.32 * S * c[3], g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    g.addColorStop(0, rgba([30, 40, 60], 0.35 - 0.1 * wr)); g.addColorStop(1, rgba([30, 40, 60], 0));
+  function shadow() {
+    var c = proj([0, Y0, 0]), r = 0.42 * S * c[3], g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, rgba([30, 40, 60], 0.22)); g.addColorStop(1, rgba([30, 40, 60], 0));
     disc(c, r, 0.3, g);
   }
 
-  // rain inside the box, ripples where it lands
-  var drops = [], ripples = [], rnd = seeded(7);
-  for (i = 0; i < 240; i++) drops.push({ x: rnd() * 0.9 - 0.45, z: rnd() * 0.9 - 0.45, y: Y0 + rnd() * 0.3, v: 0.9 + rnd() * 0.5, l: 0.04 + rnd() * 0.05 });
-  function rain(w, dt) {
-    var n = Math.round(drops.length * w), i, d;
-    ctx.strokeStyle = rgba([205, 220, 240], 0.5 * w); ctx.lineWidth = 1; ctx.beginPath();
-    for (i = 0; i < n; i++) {
-      d = drops[i];
-      if (!still) d.y -= d.v * dt;
-      if (d.y < Y0) {
-        if (ripples.length < 50 && Math.random() < 0.2) ripples.push({ x: d.x, z: d.z, t: 0 });
-        d.y = -0.14 - Math.random() * 0.08; d.x = Math.random() * 0.9 - 0.45; d.z = Math.random() * 0.9 - 0.45;
-      }
-      var a = proj([d.x, d.y, d.z]), b = proj([d.x, Math.min(d.y + d.l, -0.12), d.z]);
-      ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
-    }
-    ctx.stroke();
-    for (i = ripples.length - 1; i >= 0; i--) {
-      var rp = ripples[i]; rp.t += dt;
-      if (rp.t > 0.7) { ripples.splice(i, 1); continue; }
-      var c = proj([rp.x, Y0, rp.z]), r = (0.01 + rp.t * 0.07) * S * c[3];
-      ctx.strokeStyle = rgba([220, 232, 248], 0.5 * w * (1 - rp.t / 0.7)); ctx.beginPath(); ctx.ellipse(c[0], c[1], r, r * 0.28, 0, 0, 6.2832); ctx.stroke();
-    }
-  }
-
-  // sun: beams from the lamp through the top pane, a pool of light on the plate, a glow behind the cloud
-  function sunlight(w) {
+  // the light of each scene: beams from the lamp through the top pane, a pool of light on the plate, a glow inside
+  var LIGHT = [[[170, 235, 250], 0.8], [[255, 226, 170], 1], [[255, 180, 110], 0.75], [[220, 232, 255], 0.35]];
+  function sunlight(w, col) {
     var top = proj([0, Y1 + 0.35, 0]), i;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (i = 0; i < 6; i++) {
       var ang = (i - 2.5) * 0.16 + (still ? 0 : Math.sin(t * 0.4 + i) * 0.03), len = S * 1.15;
       var x1 = top[0] + Math.sin(ang) * len, y1 = top[1] + Math.cos(ang) * len, px = Math.cos(ang), py = -Math.sin(ang), wb = S * 0.08;
       var g = ctx.createLinearGradient(top[0], top[1], x1, y1);
-      g.addColorStop(0, 'rgba(255,226,170,0)'); g.addColorStop(0.3, rgba([255, 226, 170], 0.11 * w)); g.addColorStop(1, 'rgba(255,226,170,0)');
+      g.addColorStop(0, rgba(col, 0)); g.addColorStop(0.3, rgba(col, 0.11 * w)); g.addColorStop(1, rgba(col, 0));
       ctx.beginPath(); ctx.moveTo(top[0] - px * 2, top[1] - py * 2); ctx.lineTo(top[0] + px * 2, top[1] + py * 2);
       ctx.lineTo(x1 + px * wb, y1 + py * wb); ctx.lineTo(x1 - px * wb, y1 - py * wb); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
     }
     var c = proj([0, Y0, 0]), r = 0.42 * S * c[3], g2 = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    g2.addColorStop(0, rgba([255, 220, 160], 0.4 * w)); g2.addColorStop(1, rgba([255, 220, 160], 0));
+    g2.addColorStop(0, rgba(col, 0.36 * w)); g2.addColorStop(1, rgba(col, 0));
     disc(c, r, 0.3, g2);
     var h = proj([0, 0.22, 0]), hr = 0.5 * S * h[3], g3 = ctx.createRadialGradient(h[0], h[1], 0, h[0], h[1], hr);
-    g3.addColorStop(0, rgba([255, 214, 150], 0.3 * w)); g3.addColorStop(1, rgba([255, 214, 150], 0));
+    g3.addColorStop(0, rgba(col, 0.16 * w)); g3.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g3; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2);
     ctx.restore();
-  }
-  function lightning(f) {
-    var h = proj([0, 0.1, 0]), hr = 0.55 * S * h[3], g = ctx.createRadialGradient(h[0], h[1], 0, h[0], h[1], hr);
-    g.addColorStop(0, rgba([235, 240, 255], 0.9 * f)); g.addColorStop(1, rgba([235, 240, 255], 0));
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(h[0] - hr, h[1] - hr, hr * 2, hr * 2); ctx.restore();
   }
 
   var lastYaw = 0, lastPitch = 0, vars = {};
   function setVar(name, v) { v = v.toFixed(3); if (vars[name] !== v) { vars[name] = v; set(name, v); } }
   function frame(now) {
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0, i, f;
-    last = now; t += dt;
-    var s = y / H;                                         // screens scrolled
-    var wr = tri(s, 1), ws = tri(s, 2), wc = Math.max(0, 1 - wr - ws);
+    last = now; t += dt; stepDt = dt;
+    var s = clamp(y / H, 0, 3);                            // screens scrolled: fish, ducks, autumn, winter
+    var w = [tri(s, 0), tri(s, 1), tri(s, 2), tri(s, 3)];
     mx += (tmx - mx) * 0.06; my += (tmy - my) * 0.06;
     var yaw = Math.round((32 + 3 * mx) * 4) / 4, pitch = Math.round((11 + 1.5 * my) * 4) / 4;
     view(yaw * Math.PI / 180, pitch * Math.PI / 180);
     var moved = yaw !== lastYaw || pitch !== lastPitch; lastYaw = yaw; lastPitch = pitch;
 
-    if (wr > 0.7 && !still) { nextFlash -= dt; if (nextFlash < 0) { flash = 1; refire = 0.14; nextFlash = 4 + Math.random() * 6; } }
-    if (refire > 0) { refire -= dt; if (refire <= 0) flash = Math.max(flash, 0.7); }
-    flash *= Math.exp(-dt * 8);
-    setVar('--calm', wc); setVar('--rain', wr); setVar('--sun', ws);
-    setVar('--flash', 0.14 * flash); setVar('--hint', 1 - clamp(s * 2.5, 0, 1));
+    setVar('--s0', w[0]); setVar('--s1', w[1]); setVar('--s2', w[2]); setVar('--s3', w[3]);
+    setVar('--frost', 0.85 * w[3]); setVar('--hint', 1 - clamp(s * 2.5, 0, 1));
 
     var P = BOX.map(proj), Q = PLATE.map(proj), PM = BOXM.map(proj), QM = PLATEM.map(proj);
     var vis = NORMALS.map(function (n) { return facing(n, [n[0] * 0.5, 0.04 + n[1] * 0.5, n[2] * 0.5]); });
@@ -419,9 +512,9 @@
           faceFront[slot].setAttribute('fill', f === 3 ? 'url(#sheenTop)' : fx < cx ? 'url(#sheenL)' : 'url(#sheenR)');
           show(faceFront[slot], true);
           if (side && wetSlot < 2) {
-            var w = wet[wetSlot++].style;
-            w.display = ''; w.left = b[0] + 'px'; w.top = b[1] + 'px'; w.width = b[2] + 'px'; w.height = b[3] + 'px';
-            w.clipPath = 'polygon(' + poly(pts.map(function (p) { return [p[0] - b[0], p[1] - b[1]]; })) + ')';
+            var pane = wet[wetSlot++].style;
+            pane.display = ''; pane.left = b[0] + 'px'; pane.top = b[1] + 'px'; pane.width = b[2] + 'px'; pane.height = b[3] + 'px';
+            pane.clipPath = 'polygon(' + poly(pts.map(function (p) { return [p[0] - b[0], p[1] - b[1]]; })) + ')';
           }
           slot++;
         }
@@ -443,21 +536,20 @@
     page.style.transform = 'translate3d(0,' + (-y).toFixed(2) + 'px,0)';
     clonePage.style.transform = 'translate3d(0,' + (0.01 * S - y).toFixed(2) + 'px,0)';
 
-    // the canvas: the cloud's reflection in the floor, then everything inside the box
+    // the canvas: the scene's reflection in the floor, then everything inside the box
     ctx.clearRect(0, 0, W, H);
-    renderCloud(wr, ws);
     ctx.save(); ctx.beginPath(); ctx.rect(0, floorY, W, H - floorY); ctx.clip();
-    ctx.globalAlpha = 0.18; cloud(true); ctx.globalAlpha = 1;
+    ctx.globalAlpha = 0.18; scene(true, w); ctx.globalAlpha = 1;
     var fg = ctx.createLinearGradient(0, floorY, 0, floorY + 0.5 * S); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,1)');
     ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = fg; ctx.fillRect(0, floorY, W, H - floorY); ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
     ctx.save(); ctx.beginPath();
     ctx.moveTo(hp[0][0], hp[0][1]); for (i = 1; i < hp.length; i++) ctx.lineTo(hp[i][0], hp[i][1]); ctx.closePath(); ctx.clip();
-    if (ws > 0.01) sunlight(ws);
-    shadow(wr);
-    cloud(false);
-    if (wr > 0.01) rain(wr, dt);
-    if (flash > 0.02) lightning(flash);
+    var lc = [0, 0, 0], ls = 0;
+    for (i = 0; i < 4; i++) { lc = mix(lc, lc.map(function (c, k) { return c + LIGHT[i][0][k]; }), w[i]); ls += w[i] * LIGHT[i][1]; }   // the weights sum to 1
+    if (ls > 0.01) sunlight(ls, lc);
+    shadow();
+    scene(false, w);
     ctx.restore();
     requestAnimationFrame(frame);
   }
