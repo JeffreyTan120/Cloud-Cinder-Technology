@@ -14,12 +14,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   /*
-    A dark studio, one spotlight, a glass box with a little world in it. The page scrolls through the box: the text
-    is drawn twice, once crisp outside the glass (clipped to everything but the box) and once inside it (a copy
-    clipped to the box, shifted down a little like a refraction, blended so it reads over the scene too). The scene
-    follows the scroll, one per screen: the internal UI's seasonal skins, unchanged (ocean butterflyfish, the summer
-    pool of rubber ducks, autumn leaves, winter snow).
-    The box only moves with the mouse, never with the scroll, so scrolling changes no clip paths (that was slow).
+    A dark studio, one spotlight, a wide glass aquarium on a white plinth. The page scrolls through the tank: the
+    text is drawn twice, once crisp outside the glass (clipped to everything but the tank) and once inside it (a copy
+    clipped to the tank, shifted down a little like a refraction, blended so it reads over the scene too). The tank
+    holds water over a sand bed, swaying plants, stones, two bubble streams, light shafts and caustics on the sand.
+    The internal UI's seasonal skins follow the scroll, one per screen, living in the water: butterflyfish swim in
+    it, the summer ducks, lifebuoys and palm floats bob on the surface (its fish swim below), autumn leaves fall,
+    float a while and sink to the sand, winter snow falls into the air gap and melts on the water.
+    The tank only moves with the mouse, never with the scroll, so scrolling changes no clip paths (that was slow).
     (The cloud version of the page is kept as cloud.html.)
   */
   :root { --vh: 100vh; --S: 400px; --base: 70vh; --floor: 60vh; --hint: 1; }
@@ -51,7 +53,7 @@
 
   /* the text, outside and inside the glass */
   #content { overflow: visible; }
-  .clone { pointer-events: none; mix-blend-mode: difference; overflow: visible; }
+  .clone { pointer-events: none; overflow: visible; text-shadow: 0 1px 2px rgba(6,22,26,.55), 0 0 18px rgba(6,22,26,.45); }
   .clone a { pointer-events: auto; }
   .page { max-width: 720px; margin: 0 auto; padding: 0 22px; text-align: center; will-change: transform; }
   section { min-height: var(--vh); display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -113,6 +115,17 @@
     <linearGradient id="plateSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3c8cf"/><stop offset="1" stop-color="#8e949c"/></linearGradient>
     <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
     <mask id="refl" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%"><rect id="reflRect" x="0" y="0" width="100%" height="100%" fill="url(#fade)"/></mask>
+    <!-- the aquarium -->
+    <linearGradient id="water" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cc3c9" stop-opacity=".22"/><stop offset=".55" stop-color="#3f7d86" stop-opacity=".38"/><stop offset="1" stop-color="#1d434a" stop-opacity=".62"/></linearGradient>
+    <linearGradient id="sandTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5e605a"/><stop offset="1" stop-color="#8e8a7e"/></linearGradient>
+    <linearGradient id="sandSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f7a6e"/><stop offset="1" stop-color="#46433d"/></linearGradient>
+    <linearGradient id="shaft" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf8fa" stop-opacity=".2"/><stop offset=".7" stop-color="#eaf8fa" stop-opacity=".05"/><stop offset="1" stop-color="#eaf8fa" stop-opacity="0"/></linearGradient>
+    <linearGradient id="surf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef9fa" stop-opacity=".26"/><stop offset=".5" stop-color="#eef9fa" stop-opacity=".06"/><stop offset="1" stop-color="#eef9fa" stop-opacity=".16"/></linearGradient>
+    <radialGradient id="rock" cx=".38" cy=".28" r=".8"><stop offset="0" stop-color="#a3a5a7"/><stop offset=".55" stop-color="#5b5e62"/><stop offset="1" stop-color="#26282c"/></radialGradient>
+    <pattern id="caus1" patternUnits="userSpaceOnUse" width="256" height="256"><image class="causA" width="256" height="256"/></pattern>
+    <pattern id="caus2" patternUnits="userSpaceOnUse" width="256" height="256"><image class="causB" width="256" height="256"/></pattern>
+    <pattern id="caus3" patternUnits="userSpaceOnUse" width="256" height="256"><image class="causB" width="256" height="256"/></pattern>
+    <pattern id="sandGrain" patternUnits="userSpaceOnUse" width="96" height="96"><image class="sandG" width="96" height="96"/></pattern>
   </defs>
 </svg>
 <div class="field mirror" id="fieldMirror" aria-hidden="true"></div>
@@ -198,7 +211,7 @@
   var back = document.getElementById('back'), front = document.getElementById('front');
   var NS = 'http://www.w3.org/2000/svg';
   var W = 1, H = 1, S = 1, cx = 0, cy = 0, maxY = 1, y = 0, t = 0, last = 0;
-  var D = 3.4, ca = 1, sa = 0, cb = 1, sb = 0;             // camera distance (box units) and the view angles
+  var D = 4.4, ca = 1, sa = 0, cb = 1, sb = 0;             // camera distance (box units) and the view angles
   var tmx = 0, tmy = 0, mx = 0, my = 0;
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -209,14 +222,24 @@
   function set(name, v) { root.style.setProperty(name, v); }
   function seeded(seed) { return function () { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
 
-  // the box: corners 0..7 (bit 1 = +x, bit 2 = top, bit 4 = +z), the plate under it, and both mirrored in the floor
-  var Y0 = -0.46, Y1 = 0.54, P0 = -0.5;
+  // the tank: corners 0..7 (bit 1 = +x, bit 2 = top, bit 4 = +z), the plate under it, and both mirrored in the floor.
+  // It is 2 HX wide, 1 tall and 2 HZ deep (HX narrows on portrait screens); the water stands at YW, over a sand bed
+  // that rises from SF at the front glass to SB at the back.
+  var HX = 1, HZ = 0.45, Y0 = -0.46, Y1 = 0.54, P0 = -0.5, YW = Y1 - 0.2, SF = Y0 + 0.07, SB = Y0 + 0.15;
+  function sandY(z) { return SF + (SB - SF) * (HZ - z) / (2 * HZ); }
   function corners(y0, y1, mirror) {
     var c = [];
-    for (var i = 0; i < 8; i++) { var yy = (i & 2) ? y1 : y0; if (mirror) yy = -1 - yy; c.push([(i & 1) ? 0.5 : -0.5, yy, (i & 4) ? 0.5 : -0.5]); }
+    for (var i = 0; i < 8; i++) { var yy = (i & 2) ? y1 : y0; if (mirror) yy = -1 - yy; c.push([(i & 1) ? HX : -HX, yy, (i & 4) ? HZ : -HZ]); }
     return c;
   }
-  var BOX = corners(Y0, Y1), PLATE = corners(P0, Y0), BOXM = corners(Y0, Y1, true), PLATEM = corners(P0, Y0, true);
+  var BOX, PLATE, BOXM, PLATEM, WATER;
+  function frac(v) { return v - Math.floor(v); }
+  // a vertical face's two corners at height yy (for the faces -x, +x, -z, +z)
+  function faceEdge(f, yy) {
+    return f === 0 ? [[-HX, yy, -HZ], [-HX, yy, HZ]] : f === 1 ? [[HX, yy, -HZ], [HX, yy, HZ]] :
+           f === 4 ? [[-HX, yy, -HZ], [HX, yy, -HZ]] : [[-HX, yy, HZ], [HX, yy, HZ]];
+  }
+  var VFACES = [0, 1, 4, 5];
   var FACES = [[0, 4, 6, 2], [1, 3, 7, 5], [0, 1, 5, 4], [2, 6, 7, 3], [0, 2, 3, 1], [4, 5, 7, 6]];   // -x +x -y +y -z +z
   var NORMALS = [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]];
   var EDGES = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
@@ -257,10 +280,29 @@
 
   // the SVG parts, made once and moved every frame
   function el(parent, name, attrs) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
-  var gHidden = el(back, 'g'), gRefl = el(back, 'g', { mask: 'url(#refl)', opacity: 0.4 }), gPlate = el(back, 'g'), gBackEdges = el(back, 'g');
-  var gFront = el(front, 'g'), gFrontEdges = el(front, 'g');
-  var fade = document.getElementById('fade'), reflRect = document.getElementById('reflRect');
+  var gHidden = el(back, 'g'), gRefl = el(back, 'g', { mask: 'url(#refl)', opacity: 0.4 }), gPlate = el(back, 'g'), gBackEdges = el(back, 'g'), gAq = el(back, 'g');
+  var gWet = el(front, 'g'), gFront = el(front, 'g'), gFrontEdges = el(front, 'g');
+  var fade = document.getElementById('fade'), reflRect = document.getElementById('reflRect'), waterGrad = document.getElementById('water');
   var faceHidden = [], faceFront = [], plateSide = [], reflSide = [], backEdge = [], frontGlow = [], frontEdge = [], reflEdge = [], i;
+
+  // the aquarium's parts, back to front: the water, light shafts, the sand bed with its caustics, plants, stones,
+  // bubbles, the surface; on the front glass a faint tint and the bright waterline (meniscus)
+  var reflWater = el(gRefl, 'polygon', { fill: '#2b5960' }), reflSand = [];
+  for (i = 0; i < 4; i++) reflSand.push(el(gRefl, 'polygon', { fill: '#7a7366' }));
+  var waterBody = el(gAq, 'polygon', { fill: 'url(#water)' }), shafts = [], sandSide = [], sandGrain = [];
+  for (i = 0; i < 4; i++) shafts.push(el(gAq, 'polygon', { fill: 'url(#shaft)' }));
+  for (i = 0; i < 4; i++) { sandSide.push(el(gAq, 'polygon', { fill: 'url(#sandSide)' })); sandGrain.push(el(gAq, 'polygon', { fill: 'url(#sandGrain)', opacity: 0.55 })); }
+  var sandTop = el(gAq, 'polygon', { fill: 'url(#sandTop)' }), sandTopGrain = el(gAq, 'polygon', { fill: 'url(#sandGrain)', opacity: 0.35 });
+  var causA = el(gAq, 'polygon', { fill: 'url(#caus1)', opacity: 0.5 }), causB = el(gAq, 'polygon', { fill: 'url(#caus2)', opacity: 0.4 });
+  var gPlants = el(gAq, 'g'), gRocks = el(gAq, 'g'), gBubbles = el(gAq, 'g');
+  var surface = el(gAq, 'polygon', { fill: 'url(#surf)' }), ripple = el(gAq, 'polygon', { fill: 'url(#caus3)', opacity: 0.16 });
+  var pat1 = document.getElementById('caus1'), pat2 = document.getElementById('caus2'), pat3 = document.getElementById('caus3');
+  var wetTint = [], wetBand = [], wetLine = [];
+  for (i = 0; i < 4; i++) {
+    wetTint.push(el(gWet, 'polygon', { fill: 'rgba(130,190,198,0.05)' }));
+    wetBand.push(el(gWet, 'polygon', { fill: 'rgba(255,255,255,0.07)' }));
+    wetLine.push(el(gWet, 'line', { stroke: 'rgba(255,255,255,0.5)', 'stroke-width': 1 }));
+  }
   for (i = 0; i < 6; i++) {
     faceHidden.push(el(gHidden, 'polygon', { fill: 'rgba(255,255,255,0.03)' }));
     plateSide.push(el(gPlate, 'polygon', { fill: 'url(#plateSide)' }));
@@ -276,6 +318,142 @@
   }
   function line(e, a, b) { e.setAttribute('x1', a[0].toFixed(1)); e.setAttribute('y1', a[1].toFixed(1)); e.setAttribute('x2', b[0].toFixed(1)); e.setAttribute('y2', b[1].toFixed(1)); }
   function show(e, on) { e.setAttribute('display', on ? '' : 'none'); }
+  function quad(a) { return points(a.map(proj)); }
+
+  // Textures painted once: two tileable caustic webs (the edges of jittered cells, like light focused by ripples)
+  // and a sand grain.
+  function caustics(n, cells, seed) {
+    var c = document.createElement('canvas'); c.width = c.height = n;
+    var x = c.getContext('2d'), img = x.createImageData(n, n), d = img.data, rnd = seeded(seed), cs = n / cells, pts = [], i, j, a, b;
+    for (j = 0; j < cells; j++) for (i = 0; i < cells; i++) pts.push([(i + 0.15 + rnd() * 0.7) * cs, (j + 0.15 + rnd() * 0.7) * cs]);
+    for (j = 0; j < n; j++) for (i = 0; i < n; i++) {
+      var ci = Math.floor(i / cs), cj = Math.floor(j / cs), f1 = 1e9, f2 = 1e9;
+      for (b = -1; b <= 1; b++) for (a = -1; a <= 1; a++) {
+        var gi = ci + a, gj = cj + b, p = pts[((gj + cells) % cells) * cells + (gi + cells) % cells];
+        var dx = p[0] + (gi < 0 ? -n : gi >= cells ? n : 0) - i, dy = p[1] + (gj < 0 ? -n : gj >= cells ? n : 0) - j, dd = Math.sqrt(dx * dx + dy * dy);
+        if (dd < f1) { f2 = f1; f1 = dd; } else if (dd < f2) f2 = dd;
+      }
+      var e = Math.exp(-(f2 - f1) / (cs * 0.07)), k = (j * n + i) * 4;
+      d[k] = 240; d[k + 1] = 252; d[k + 2] = 255; d[k + 3] = Math.min(255, e * 300);
+    }
+    x.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+  function grain() {
+    var c = document.createElement('canvas'); c.width = c.height = 96;
+    var x = c.getContext('2d'), rnd = seeded(5);
+    for (var i = 0; i < 900; i++) {
+      var v = rnd() < 0.5 ? 0 : 255;
+      x.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + (0.12 + rnd() * 0.3).toFixed(2) + ')';
+      x.fillRect(Math.floor(rnd() * 96), Math.floor(rnd() * 96), 1 + (rnd() < 0.3), 1 + (rnd() < 0.3));
+    }
+    return c.toDataURL();
+  }
+  (function () {
+    var a = caustics(256, 5, 3), b = caustics(256, 4, 9), g = grain();
+    [].forEach.call(back.querySelectorAll('image.causA'), function (e) { e.setAttribute('href', a); });
+    [].forEach.call(back.querySelectorAll('image.causB'), function (e) { e.setAttribute('href', b); });
+    [].forEach.call(back.querySelectorAll('image.sandG'), function (e) { e.setAttribute('href', g); });
+  })();
+
+  // plants in clumps along the back and the side panes, stones on the sand, two bubble streams, light shafts
+  var blades = [], rocks = [], bubbles = [], rays = [];
+  function buildTank() {
+    BOX = corners(Y0, Y1); PLATE = corners(P0, Y0); BOXM = corners(Y0, Y1, true); PLATEM = corners(P0, Y0, true); WATER = corners(Y0, YW);
+    var rnd = seeded(11);
+    gPlants.textContent = ''; blades = [];
+    [[-0.88, -0.72, 6], [-0.64, -0.9, 4], [-0.34, -0.74, 5], [0.08, -0.9, 4], [0.4, -0.76, 6], [0.7, -0.88, 5], [0.92, -0.45, 4], [-0.93, 0.05, 3], [0.93, 0.3, 3]]
+      .forEach(function (c) {
+        for (var b = 0; b < c[2]; b++) {
+          var z = clamp(c[1] * HZ + (rnd() - 0.5) * 0.12, -HZ + 0.03, HZ - 0.03), x = clamp(c[0] * HX + (rnd() - 0.5) * 0.16, -HX + 0.03, HX - 0.03), base = sandY(z);
+          blades.push({ x: x, z: z, y: base - 0.012, h: (0.3 + rnd() * 0.58) * (YW - base - 0.05), w: 6 + rnd() * 7, lean: (rnd() - 0.5) * 0.35,
+                        ph: rnd() * 6.283, amp: 0.02 + rnd() * 0.035, sp: 0.55 + rnd() * 0.5,
+                        e: el(gPlants, 'path', { fill: 'hsl(' + (112 + rnd() * 40).toFixed(0) + ',' + (16 + rnd() * 18).toFixed(0) + '%,' + (17 + rnd() * 16).toFixed(0) + '%)' }) });
+        }
+      });
+    blades.sort(function (a, b) { return a.z - b.z; });
+    blades.forEach(function (b) { gPlants.appendChild(b.e); });
+    gRocks.textContent = '';
+    rocks = [[-0.56, -0.38, 0.085], [-0.43, -0.16, 0.055], [-0.48, -0.05, 0.035], [0.28, -0.5, 0.1], [0.52, -0.24, 0.06], [0.06, 0.12, 0.045]].map(function (r) {
+      return { x: r[0] * HX, z: r[1] * HZ * 2, r: r[2], e: el(gRocks, 'ellipse', { fill: 'url(#rock)' }) };
+    });
+    rocks.sort(function (a, b) { return a.z - b.z; });
+    rocks.forEach(function (r) { gRocks.appendChild(r.e); });
+    gBubbles.textContent = ''; bubbles = [];
+    [[-0.74 * HX, -0.22], [0.8 * HX, -0.05]].forEach(function (src, s) {
+      for (var j = 0; j < 13; j++) bubbles.push({ x: src[0], z: src[1], ph: j / 13 + s * 0.37, r: 1.4 + scatter(j + s * 20, 21) * 2.6, w: scatter(j + s * 20, 22) * 6.283,
+                                                    e: el(gBubbles, 'circle', { fill: 'rgba(255,255,255,0.08)', stroke: 'rgba(255,255,255,0.55)', 'stroke-width': 0.8 }) });
+    });
+    rays = [[-0.62, 0.16], [-0.15, 0.1], [0.22, 0.22], [0.66, 0.12]].map(function (r, k) { return { x: r[0] * HX, w: r[1], ph: k * 1.9 }; });
+  }
+
+  function animateTank(ta) {
+    var i, m;
+    for (i = 0; i < blades.length; i++) {                  // each blade a tapered strip swaying more towards its tip
+      var b = blades[i], P = [], L = [], R = [];
+      for (m = 0; m <= 7; m++) { var s = m / 7; P.push(proj([b.x + (b.lean * b.h + b.amp * Math.sin(ta * b.sp + b.ph + s * 2.4)) * s * s, b.y + b.h * s, b.z])); }
+      for (m = 0; m <= 7; m++) {
+        var p = P[m], A = P[Math.max(m - 1, 0)], B = P[Math.min(m + 1, 7)], tx = B[0] - A[0], ty = B[1] - A[1], tl = Math.sqrt(tx * tx + ty * ty) || 1;
+        var hw = b.w * S / 1400 * Math.pow(1 - m / 7 * 0.9, 0.8) * p[3];
+        L.push((p[0] - ty / tl * hw).toFixed(1) + ',' + (p[1] + tx / tl * hw).toFixed(1));
+        R.push((p[0] + ty / tl * hw).toFixed(1) + ',' + (p[1] - tx / tl * hw).toFixed(1));
+      }
+      b.e.setAttribute('d', 'M' + L.join('L') + 'L' + R.reverse().join('L') + 'Z');
+    }
+    for (i = 0; i < bubbles.length; i++) {                 // rising, wobbling, growing a little, gone at the surface
+      var q = bubbles[i], base = sandY(q.z) + 0.02, u = frac(ta / 3.6 + q.ph), yy = base + (YW - base) * u;
+      var c = proj([q.x + 0.014 * Math.sin(ta * 5 + q.w + u * 9) * u, yy, q.z]);
+      q.e.setAttribute('cx', c[0].toFixed(1)); q.e.setAttribute('cy', c[1].toFixed(1));
+      q.e.setAttribute('r', (q.r * S / 700 * c[3] * (0.75 + 0.5 * u)).toFixed(2));
+      q.e.setAttribute('opacity', (Math.min(1, u * 8) * (1 - smooth((u - 0.9) / 0.1))).toFixed(2));
+    }
+    for (i = 0; i < 4; i++) shafts[i].setAttribute('opacity', (0.45 + 0.55 * (0.5 + 0.5 * Math.sin(ta * 0.37 + rays[i].ph))).toFixed(2));
+    // the caustic webs slide across the sand in two directions, the ripple across the surface
+    pat1.setAttribute('patternTransform', sandM + ' scale(' + (0.55 / 256) + ') translate(' + (ta * 7 % 256).toFixed(2) + ' ' + (ta * 4 % 256).toFixed(2) + ')');
+    pat2.setAttribute('patternTransform', sandM + ' scale(' + (0.42 / 256) + ') translate(' + (-ta * 5 % 256).toFixed(2) + ' ' + (ta * 6 % 256).toFixed(2) + ')');
+    pat3.setAttribute('patternTransform', surfM + ' scale(' + (0.6 / 256) + ') translate(' + (ta * 6 % 256).toFixed(2) + ' ' + (-ta * 3 % 256).toFixed(2) + ')');
+  }
+
+  // the screen mapping of a horizontal plane at height yy(z) (sand: sloped; surface: flat), for the caustic patterns
+  var sandM = '', surfM = '';
+  function planeMatrix(yy) {
+    var o = proj([0, yy(0), 0]), a = proj([HX, yy(0), 0]), b = proj([-HX, yy(0), 0]), c = proj([0, yy(HZ), HZ]), d = proj([0, yy(-HZ), -HZ]);
+    return 'matrix(' + [(a[0] - b[0]) / (2 * HX), (a[1] - b[1]) / (2 * HX), (c[0] - d[0]) / (2 * HZ), (c[1] - d[1]) / (2 * HZ), o[0], o[1]].map(function (v) { return v.toFixed(3); }).join(' ') + ')';
+  }
+
+  // the static parts, redrawn only when the view turns
+  function drawTank(vis) {
+    var f, k, e, top = 1e9, bot = -1e9, W8 = WATER.map(proj);
+    W8.forEach(function (p) { top = Math.min(top, p[1]); bot = Math.max(bot, p[1]); });
+    waterBody.setAttribute('points', points(hull(W8)));
+    waterGrad.setAttribute('y1', top.toFixed(1)); waterGrad.setAttribute('y2', bot.toFixed(1));
+    reflWater.setAttribute('points', points(hull(WATER.map(function (p) { return proj([p[0], -1 - p[1], p[2]]); }))));
+    for (k = 0; k < 4; k++) {
+      f = VFACES[k]; e = faceEdge(f, 0);
+      var on = vis[f];
+      var sand = [[e[0][0], Y0, e[0][2]], [e[1][0], Y0, e[1][2]], [e[1][0], sandY(e[1][2]), e[1][2]], [e[0][0], sandY(e[0][2]), e[0][2]]], sp = quad(sand);
+      sandSide[k].setAttribute('points', sp); sandGrain[k].setAttribute('points', sp); show(sandSide[k], on); show(sandGrain[k], on);
+      reflSand[k].setAttribute('points', quad(sand.map(function (p) { return [p[0], -1 - p[1], p[2]]; }))); show(reflSand[k], on);
+      var w0 = faceEdge(f, YW), w1 = faceEdge(f, YW - 0.035), wb = faceEdge(f, Y0);
+      wetTint[k].setAttribute('points', quad([wb[0], wb[1], w0[1], w0[0]])); show(wetTint[k], on);
+      wetBand[k].setAttribute('points', quad([w1[0], w1[1], w0[1], w0[0]])); show(wetBand[k], on);
+      line(wetLine[k], proj(w0[0]), proj(w0[1])); show(wetLine[k], on);
+    }
+    var st = quad([[-HX, sandY(-HZ), -HZ], [HX, sandY(-HZ), -HZ], [HX, sandY(HZ), HZ], [-HX, sandY(HZ), HZ]]);
+    [sandTop, sandTopGrain, causA, causB].forEach(function (p) { p.setAttribute('points', st); });
+    var sf = quad([[-HX, YW, -HZ], [HX, YW, -HZ], [HX, YW, HZ], [-HX, YW, HZ]]);
+    surface.setAttribute('points', sf); ripple.setAttribute('points', sf);
+    sandM = planeMatrix(sandY); surfM = planeMatrix(function () { return YW; });
+    rays.forEach(function (r, i) {                         // slanting shafts in a plane behind the middle
+      var z = -0.2 * HZ, b = sandY(z);
+      shafts[i].setAttribute('points', quad([[r.x, YW, z], [r.x + r.w, YW, z], [r.x + r.w + 0.18, b, z], [r.x + 0.18, b, z]]));
+    });
+    rocks.forEach(function (r) {
+      var c = proj([r.x, sandY(r.z) + r.r * 0.3, r.z]), rx = r.r * S * c[3];
+      r.e.setAttribute('cx', c[0].toFixed(1)); r.e.setAttribute('cy', c[1].toFixed(1));
+      r.e.setAttribute('rx', rx.toFixed(1)); r.e.setAttribute('ry', (rx * 0.6).toFixed(1));
+    });
+  }
 
   // the text inside the glass: one copy, clipped to the box
   var clone = document.createElement('div'), clonePage = page.cloneNode(true);
@@ -287,8 +465,9 @@
   // internal UI's seasonal skins (internal-ui/src/seasons) as they are: the particle table from seasons.tsx, the
   // placement from ambient.tsx (the same scatter() and salts), the motion of its pp-swim / pp-sway / pp-bob / pp-fall
   // keyframes (styles.css) and the rubber duck from sprites.tsx. Only the stage differs: the hero's flat field becomes
-  // the inside of the box (FIELD = the box's width on screen, in px; sizes, drifts and offsets stay the hero's px), and
-  // each particle gets a depth in it, so it moves with the box and shows in the floor reflection.
+  // the inside of the tank (S px per tank unit; sizes, drifts and offsets stay the hero's px), each particle gets a
+  // depth in it, so it moves with the tank and shows in the floor reflection, and the water bends their paths: see
+  // pose().
   function scatter(index, salt) { var x = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x); }
   function lerp(r, k) { return r[0] + (r[1] - r[0]) * k; }
   function easeInOut(x) {                                  // CSS ease-in-out: cubic-bezier(.42, 0, .58, 1)
@@ -296,7 +475,6 @@
     for (k = 0; k < 16; k++) { u = (lo + hi) / 2; if (3 * u * (1 - u) * (1 - u) * 0.42 + 3 * u * u * (1 - u) * 0.58 + u * u * u < x) lo = u; else hi = u; }
     return 3 * u * u * (1 - u) + u * u * u;
   }
-  var FIELD = 400;
 
   // seasons.tsx: BUTTERFLYFISH (raccoon, copperband, Klein's, triangle) and the four skins' particle specs
   var BUTTERFLYFISH = ['hue-rotate(-8deg) saturate(1.2)', 'hue-rotate(-24deg) saturate(0.6) brightness(1.25)',
@@ -308,10 +486,11 @@
     { glyphs: ['❄️', '❅', '❆', '❄️'], count: 34, size: [10, 22], duration: [7, 15], drift: 70, opacity: [0.5, 0.95], motion: 'fall', spin: false }       // winter
   ];
 
-  // ambient.tsx: every particle's values, derived from its index exactly as there
-  SEASONS.forEach(function (sp) {
-    sp.parts = [];
-    for (var i = 0; i < sp.count; i++) {
+  // ambient.tsx: every particle's values, derived from its index exactly as there. The tank is up to twice as wide as
+  // the old box, so each skin has twice its count made (the same formulas, continued) and uses as many as fit.
+  SEASONS.forEach(function (sp, k) {
+    sp.parts = []; sp.k = k;
+    for (var i = 0; i < sp.count * 2; i++) {
       var duration = lerp(sp.duration, scatter(i, 3)), swims = sp.motion === 'swim', swayDuration = 4 + scatter(i, 9) * 5;
       sp.parts.push({
         glyph: sp.glyphs[i % sp.glyphs.length],
@@ -328,22 +507,52 @@
     }
   });
 
-  // one particle at time tt, as its CSS animation would place it: the glyph's centre in field px, its turn and its
-  // horizontal flip
+  // One particle at time tt, as its CSS animation would move it, set into the water. Field px become tank units
+  // (S px = 1); the speeds stay the hero's px per second. Returns [X, Y, Z, turn, flip, screen dy px, opacity factor].
   function pose(sp, q, tt) {
-    var f = ((tt - q.delay) / q.dur) % 1, s = q.size, x, y, r = 0, flip = 1;
-    if (sp.motion === 'fall') {                            // .pp-fall: from 48px above the field to below it, linear
-      x = q.left * FIELD + s / 2 + q.drift * f; y = -48 + s / 2 + (FIELD + 48) * f; r = q.spin * f;
-    } else if (sp.motion === 'swim') {                     // .pp-swim / .pp-swim-rev across, .pp-sway up and down
+    var s = q.size, FW = 2 * HX * S, Z = q.z * HZ * 2, x, Y, r = 0, flip = 1, dy = 0, a = 1, f;
+    var wTop = YW - 0.03, wPx = (wTop - SB - 0.04) * S;   // the water column the swimmers use, in px
+    if (sp.motion === 'swim') {                            // .pp-swim / .pp-swim-rev across the tank, .pp-sway up and down
+      var d = q.dur * (FW + 112) / (S + 112);
+      f = frac((tt - q.delay * d / q.dur) / d);
       var c = (tt - q.swayDelay) / q.swayDur, n = Math.floor(c), e = easeInOut(n % 2 ? 1 - (c - n) : c - n);
-      x = q.reversed ? -56 + s / 2 + (FIELD + 112) * f : FIELD + 56 - s / 2 - (FIELD + 112) * f;
-      y = q.top * FIELD + s / 2 - q.drift + 2 * q.drift * e; r = -7 + 14 * e;
+      x = q.reversed ? -56 + s / 2 + (FW + 112) * f : FW + 56 - s / 2 - (FW + 112) * f;
+      Y = wTop - (q.top * wPx + s / 2 - q.drift + 2 * q.drift * e) / S; r = -7 + 14 * e;
       if (q.reversed) { flip = -1; r = -r; }
-    } else {                                               // .pp-bob: four eased keyframes
-      var K = [[0, 0, -4], [0.5, -6, 3], [1, 0, -2], [0.5, -5, 4], [0, 0, -4]], g = Math.floor(f * 4), u = easeInOut(f * 4 - g), a = K[g], b = K[g + 1];
-      x = q.left * FIELD + s / 2 + q.drift * (a[0] + (b[0] - a[0]) * u); y = q.top * FIELD + s / 2 + a[1] + (b[1] - a[1]) * u; r = a[2] + (b[2] - a[2]) * u;
+    } else if (sp.motion === 'bob') {                      // .pp-bob: four eased keyframes; floats ride the surface
+      f = frac((tt - q.delay) / q.dur);
+      var K = [[0, 0, -4], [0.5, -6, 3], [1, 0, -2], [0.5, -5, 4], [0, 0, -4]], g = Math.floor(f * 4), u = easeInOut(f * 4 - g), ka = K[g], kb = K[g + 1];
+      var by = ka[1] + (kb[1] - ka[1]) * u;
+      x = q.left * FW + s / 2 + q.drift * (ka[0] + (kb[0] - ka[0]) * u); r = ka[2] + (kb[2] - ka[2]) * u;
+      if (q.glyph === '🐠') Y = wTop - (q.top * wPx + s / 2 + by) / S;
+      else { Y = YW; dy = -s * 0.3 + by; }
+    } else {                                               // .pp-fall through the air at its speed, then the water
+      var kind = sp.k === 3 ? 'snow' : q.glyph === '🌰' ? 'nut' : 'leaf', v = (S + 48) / q.dur, k = q.dur, ph = q.left * 9;
+      var y0 = Y1 + (48 - s / 2) / S, bed = sandY(Z) + s * 0.25 / S;
+      var tAir = (y0 - YW) * S / v, tFloat = kind === 'leaf' ? 0.3 * k : 0, vs = v * (kind === 'nut' ? 0.45 : 0.2), tSink = (YW - bed) * S / vs;
+      var L = kind === 'snow' ? tAir + 0.7 + 0.35 * k : tAir + tFloat + tSink + 0.15 * k;
+      var tau = frac((tt - q.delay * L / k) / L) * L;
+      if (tau < tAir) { Y = y0 - v * tau / S; x = q.drift * tau / k; r = q.spin * tau / k; }
+      else {
+        var t2 = tau - tAir, x0 = q.drift * tAir / k, r0 = q.spin * tAir / k;
+        if (kind === 'snow') {                             // melts on the water
+          if (t2 > 0.7) return null;
+          Y = YW; x = x0; r = r0; a = 1 - t2 / 0.7;
+        } else if (t2 < tFloat) {                          // floats a while, rocking
+          Y = YW; x = x0 + q.drift * 0.08 * t2 / k; r = r0 + 6 * Math.sin(t2 * 1.1); dy = 1.5 * (Math.sin(t2 * 2.2 + ph) - Math.sin(ph));
+        } else {                                           // sinks, swaying, and settles on the sand
+          var t3 = t2 - tFloat, x1 = x0 + q.drift * 0.08 * tFloat / k, r1 = r0 + 6 * Math.sin(tFloat * 1.1), ts = Math.min(t3, tSink);
+          Y = YW - vs * ts / S;
+          x = x1 + (kind === 'leaf' ? 10 * (Math.sin(ts * 1.4 + ph) - Math.sin(ph)) : 0);
+          r = r1 + (kind === 'leaf' ? 30 * Math.sin(ts * 0.9) : q.spin * 0.3 * ts / k);
+          if (t3 > tSink) a = 1 - (t3 - tSink) / (0.15 * k);
+        }
+      }
+      x += q.left * FW + s / 2;
     }
-    return [x, y, r, flip];
+    if (sp.motion !== 'fall') Y = Math.max(Y, sandY(Z) + s * 0.5 / S);
+    if (Y < YW - 0.01) a *= 1 - 0.35 * (HZ - Z) / (2 * HZ);   // farther back in the water, fainter
+    return [-HX + x / S, Y, Z, r, flip, dy, a];
   }
 
   // The particles are made the way the internal UI makes them, not drawn: a span each, holding the glyph as text (or
@@ -370,23 +579,23 @@
   }
   SEASONS.forEach(function (sp) { sp.parts.forEach(function (q) { q.el = particle(field, q); q.refl = particle(fieldMirror, q); }); });
 
-  function place(e, at, a, r, flip, mirror) {
-    if (!at) { if (e.style.display !== 'none') e.style.display = 'none'; return; }
+  function place(e, at, a, r, flip, mirror, dy) {
+    if (!at || a <= 0.005) { if (e.style.display !== 'none') e.style.display = 'none'; return; }
     if (e.style.display === 'none') e.style.display = '';
     e.style.opacity = a.toFixed(2);
     e.style.zIndex = String(Math.round(2000 - at[2] * 1000));      // far behind near
-    e.style.transform = 'translate3d(' + at[0].toFixed(1) + 'px,' + at[1].toFixed(1) + 'px,0) translate(-50%,-50%)' +
+    e.style.transform = 'translate3d(' + at[0].toFixed(1) + 'px,' + (at[1] + dy).toFixed(1) + 'px,0) translate(-50%,-50%)' +
       (mirror ? ' scaleY(-1)' : '') + ' rotate(' + r.toFixed(2) + 'deg)' + (flip < 0 ? ' scaleX(-1)' : '');
   }
   function scene(w) {                                      // w: the four scenes' weights
     for (var i = 0; i < 4; i++) {
-      var sp = SEASONS[i], on = !still && w[i] >= 0.01;   // as in the internal UI, no field under reduced motion
+      var sp = SEASONS[i], on = !still && w[i] >= 0.01, n = Math.round(sp.count * 2 * HX);   // as in the internal UI, no field under reduced motion
       for (var j = 0; j < sp.parts.length; j++) {
-        var q = sp.parts[j], o = on ? pose(sp, q, t) : null;
-        if (!o || o[0] < 0 || o[0] > FIELD || o[1] < 0 || o[1] > FIELD) { place(q.el); place(q.refl); continue; }   // outside: the hero's overflow hides it
-        var X = -0.5 + o[0] / FIELD, Yb = Y1 - o[1] / FIELD;
-        place(q.el, proj([X, Yb, q.z]), q.opacity * w[i], o[2], o[3], false);
-        place(q.refl, proj([X, -1 - Yb, q.z]), q.opacity * w[i], o[2], o[3], true);
+        var q = sp.parts[j], o = on && j < n ? pose(sp, q, t) : null;
+        if (!o || o[0] < -HX || o[0] > HX || o[1] > Y1) { place(q.el); place(q.refl); continue; }   // outside: the hero's overflow hides it
+        var a = q.opacity * w[i] * o[6];
+        place(q.el, proj([o[0], o[1], o[2]]), a, o[3], o[4], false, o[5]);
+        place(q.refl, proj([o[0], -1 - o[1], o[2]]), a, o[3], o[4], true, -o[5]);
       }
     }
   }
@@ -399,14 +608,14 @@
     var s = clamp(y / H, 0, 3);                            // screens scrolled: fish, ducks, autumn, winter
     var w = [tri(s, 0), tri(s, 1), tri(s, 2), tri(s, 3)];
     mx += (tmx - mx) * 0.06; my += (tmy - my) * 0.06;
-    var yaw = Math.round((32 + 3 * mx) * 4) / 4, pitch = Math.round((11 + 1.5 * my) * 4) / 4;
+    var yaw = Math.round((26 + 3 * mx) * 4) / 4, pitch = Math.round((12 + 1.5 * my) * 4) / 4;
     view(yaw * Math.PI / 180, pitch * Math.PI / 180);
     var moved = yaw !== lastYaw || pitch !== lastPitch; lastYaw = yaw; lastPitch = pitch;
 
     setVar('--hint', 1 - clamp(s * 2.5, 0, 1));
 
     var P = BOX.map(proj), Q = PLATE.map(proj), PM = BOXM.map(proj), QM = PLATEM.map(proj);
-    var vis = NORMALS.map(function (n) { return facing(n, [n[0] * 0.5, 0.04 + n[1] * 0.5, n[2] * 0.5]); });
+    var vis = NORMALS.map(function (n) { return facing(n, [n[0] * HX, (Y0 + Y1) / 2 + n[1] * (Y1 - Y0) / 2, n[2] * HZ]); });
     var floorY = 0;
     for (i = 0; i < 8; i++) floorY = Math.max(floorY, Q[i][1]);
     var hp = hull(P.concat(Q));
@@ -445,7 +654,9 @@
       fieldMirror.style.clipPath = 'inset(' + floorY.toFixed(1) + 'px 0 0 0)';
       fieldMirror.style.webkitMaskImage = fieldMirror.style.maskImage = 'linear-gradient(to bottom, #000 ' + floorY.toFixed(1) + 'px, transparent ' + (floorY + 0.5 * S).toFixed(1) + 'px)';
       content.style.clipPath = 'polygon(evenodd, 0 0, ' + W + 'px 0, ' + W + 'px ' + H + 'px, 0 ' + H + 'px, 0 0, ' + poly(hp) + ', ' + pt(hp[0]) + ')';
+      drawTank(vis);
     }
+    animateTank(still ? 0 : t);
     page.style.transform = 'translate3d(0,' + (-y).toFixed(2) + 'px,0)';
     clonePage.style.transform = 'translate3d(0,' + (0.01 * S - y).toFixed(2) + 'px,0)';
 
@@ -457,8 +668,10 @@
   function layout(force) {
     if (!force && innerWidth === lastW && Math.abs(innerHeight - lastH) < 150) return;   // the phone's address bar is not a resize
     lastW = W = innerWidth; lastH = H = innerHeight;
-    S = Math.min(H * 0.6, W * 0.62); cx = W / 2; cy = H * 0.5;        // the box is about 1.4 S wide on screen
-    FIELD = S;
+    var asp = W / H;                                       // a 2:1 tank on wide screens, narrower in portrait
+    HX = asp >= 1.2 ? 1 : asp <= 0.6 ? 0.7 : 0.7 + 0.3 * (asp - 0.6) / 0.6;
+    S = Math.min(H * 0.58, W * clamp(0.9 - (asp - 0.6) * 0.33, 0.68, 0.9) / (1.8 * HX + 0.4)); cx = W / 2; cy = H * 0.5;   // about (1.8 HX + 0.4) S wide on screen
+    buildTank();
     [back, front].forEach(function (s) { s.setAttribute('viewBox', '0 0 ' + W + ' ' + H); });
     reflRect.setAttribute('width', W); reflRect.setAttribute('height', H);
     set('--vh', H + 'px'); set('--S', S.toFixed(1) + 'px');
