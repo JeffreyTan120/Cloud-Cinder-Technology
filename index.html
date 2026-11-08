@@ -64,46 +64,38 @@
   header .contact { color: rgba(255,255,255,.85); text-decoration: none; font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
                     border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 10px 18px; transition: border-color .25s, color .25s; }
   header .contact:hover, header .contact:focus-visible { border-color: #fff; color: #fff; }
-  .hright { display: flex; align-items: center; gap: 10px; }
-  .burger { width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(10,12,16,.25); color: #fff;
-            display: grid; place-content: center; gap: 4px; cursor: pointer; padding: 0; transition: border-color .25s; }
-  .burger i { display: block; width: 16px; height: 1.5px; background: currentColor; border-radius: 1px; }
-  .burger:hover, .burger:focus-visible { border-color: #fff; }
-  .scrim { position: fixed; inset: 0; z-index: 39; background: rgba(3,4,7,.5); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
-  .scrim.on { opacity: 1; pointer-events: auto; }
-  .menu { position: fixed; top: 0; right: 0; bottom: 0; z-index: 40; width: min(400px, 88vw); display: flex; flex-direction: column;
-          padding: max(22px, env(safe-area-inset-top)) 28px max(24px, env(safe-area-inset-bottom)); overflow: hidden;
-          background: rgba(11,13,18,.74); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
-          border-left: 1px solid rgba(255,255,255,.1); transform: translateX(102%); visibility: hidden;
-          transition: transform .45s cubic-bezier(.2,.8,.2,1), visibility 0s linear .45s; }
-  .menu.open { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.2,.8,.2,1); }
-  .menu > *:not(.mfield) { position: relative; z-index: 1; }
-  .mfield { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+  header { overflow: hidden; padding: env(safe-area-inset-top) clamp(18px, 3.2vw, 44px) 0; height: calc(76px + env(safe-area-inset-top));
+           background: rgba(11,13,18,.5); -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15);
+           border-bottom: 1px solid rgba(255,255,255,.08); flex-wrap: wrap; align-content: flex-start; transition: height .45s cubic-bezier(.2,.8,.2,1); }
+  header > *:not(.sfield) { position: relative; z-index: 1; height: 76px; display: flex; align-items: center; }
+  .sfield { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
             font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; color: #f1f5f9; }
   .pp { position: absolute; left: 0; top: 0; line-height: 1; user-select: none; will-change: transform; }
-  .mtop { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
-  .mtop .kicker { margin: 0; }
-  .close { width: 48px; height: 48px; margin-right: -6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(10,12,16,.3); color: #fff;
-           display: grid; place-items: center; cursor: pointer; padding: 0; transition: border-color .25s; }
-  .close:hover, .close:focus-visible { border-color: #fff; }
-  .menu nav { margin-top: 5vh; display: flex; flex-direction: column; }
-  .menu nav a { display: flex; align-items: baseline; gap: 16px; padding: 11px 0; color: #fff; text-decoration: none; font-size: 30px; font-weight: 300;
-                letter-spacing: -.015em; text-shadow: 0 1px 18px rgba(4,6,10,.6); transition: opacity .2s; }
-  .menu nav a span { font-size: 11px; font-weight: 500; letter-spacing: .14em; color: rgba(255,255,255,.5); min-width: 20px; }
-  .menu nav:hover a { opacity: .6; }
-  .menu nav a:hover, .menu nav a:focus-visible { opacity: 1; }
-  .mseasons { margin-top: auto; padding-top: 28px; }
-  .mseasons .label { margin-bottom: 14px; }
-  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .chips button { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 14px; cursor: pointer;
-                  border: 1px solid rgba(255,255,255,.18); background: rgba(10,12,16,.35); color: rgba(255,255,255,.85);
-                  font: 500 14px Inter, system-ui, sans-serif; transition: border-color .2s, background .2s; }
-  .chips button .em { font-size: 20px; line-height: 1; width: 22px; display: grid; place-items: center;
-                      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
-  .chips button:hover, .chips button:focus-visible { border-color: rgba(255,255,255,.5); }
-  .chips button[aria-pressed="true"] { border-color: #fff; background: rgba(255,255,255,.12); color: #fff; }
-  .mfoot { margin-top: 22px; font-size: 12px; letter-spacing: .08em; color: rgba(255,255,255,.4); }
-  @media (max-height: 560px) { .menu nav a { font-size: 24px; padding: 7px 0; } .menu nav { margin-top: 2vh; } }
+  .hright { gap: 28px; }
+  .hnav { display: flex; gap: 28px; }
+  .hnav a { color: rgba(255,255,255,.86); text-shadow: 0 1px 10px rgba(4,6,10,.9); text-decoration: none; font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
+            padding: 8px 0; border-bottom: 1px solid transparent; transition: color .25s, border-color .25s; }
+  .hnav a:hover, .hnav a:focus-visible { color: #fff; border-color: rgba(255,255,255,.5); }
+  .burger { display: none; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(10,12,16,.25);
+            color: #fff; place-content: center; gap: 4px; cursor: pointer; padding: 0; transition: border-color .25s; }
+  .burger i { display: block; width: 16px; height: 1.5px; background: currentColor; border-radius: 1px; transition: transform .3s, opacity .2s; }
+  .burger:hover, .burger:focus-visible { border-color: #fff; }
+  header > .mnav { display: none; }
+  .scrim { position: fixed; inset: 0; z-index: 19; background: rgba(3,4,7,.5); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+  @media (max-width: 760px) {
+    .hnav { display: none; }
+    .hright { gap: 10px; }
+    .burger { display: grid; }
+    header.open { height: calc(76px + 300px + env(safe-area-inset-top)); background: rgba(11,13,18,.8); }
+    header.open .burger i:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+    header.open .burger i:nth-child(2) { opacity: 0; }
+    header.open .burger i:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+    header > .mnav { display: flex; flex-direction: column; flex-basis: 100%; height: auto !important; align-items: stretch !important; padding: 12px 0 0; }
+    .mnav a { display: flex; align-items: baseline; gap: 16px; padding: 12px 0; color: #fff; text-decoration: none; font-size: 28px; font-weight: 300;
+              letter-spacing: -.015em; text-shadow: 0 1px 18px rgba(4,6,10,.6); }
+    .mnav a span { font-size: 11px; font-weight: 500; letter-spacing: .14em; color: rgba(255,255,255,.5); min-width: 20px; }
+  }
   .hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 10px;
           font-size: 10px; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,255,255,.5); opacity: var(--hint); pointer-events: none; }
   .hint i { width: 1px; height: 36px; background: linear-gradient(rgba(255,255,255,.7), rgba(255,255,255,0)); animation: fall 2.4s ease-in-out infinite; }
@@ -115,7 +107,7 @@
   }
   @media (max-aspect-ratio: 23/20) {
     .page { text-align: center; }
-    section { justify-content: flex-start; padding-top: max(9.5svh, 80px); }
+    section { justify-content: flex-start; padding-top: max(9.5svh, 96px); }
     .inner { margin: 0 auto; }
     .lead { margin: 0 auto; }
     .app { flex-direction: column; align-items: center; gap: 16px; }
@@ -129,7 +121,7 @@
     .foot { margin-top: 36px; }
   }
   @media (max-width: 480px) { .brand span { display: none; } }
-  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } #gl, .menu, .menu.open, .scrim { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } #gl, header, .scrim { transition: none; } }
 </style>
 </head>
 <body>
@@ -200,34 +192,25 @@
   </div>
 </main>
 
-<header>
+<header id="bar">
+  <div class="sfield" id="sfield" aria-hidden="true"></div>
   <a class="brand" href="#top"><img src="logo.svg" alt=""><span>Cloud Cinder Technology</span></a>
   <div class="hright">
+    <nav class="hnav" aria-label="Sections">
+      <a href="#apps">Our apps</a>
+      <a href="#about">About us</a>
+    </nav>
     <a class="contact" href="#contact">Contact</a>
-    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button>
+    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mnav"><i></i><i></i><i></i></button>
   </div>
-</header>
-<div class="scrim" id="scrim"></div>
-<aside class="menu" id="menu" aria-label="Menu" aria-hidden="true" inert>
-  <div class="mfield" id="mfield" aria-hidden="true"></div>
-  <div class="mtop">
-    <p class="kicker">Menu</p>
-    <button class="close" id="mclose" type="button" aria-label="Close menu">
-      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-    </button>
-  </div>
-  <nav aria-label="Sections">
+  <nav class="mnav" id="mnav" aria-label="Menu" aria-hidden="true" inert>
     <a href="#top"><span>00</span>Home</a>
     <a href="#apps"><span>01</span>Our apps</a>
     <a href="#about"><span>02</span>About us</a>
     <a href="#contact"><span>03</span>Contact</a>
   </nav>
-  <div class="mseasons">
-    <p class="label">Seasons</p>
-    <div class="chips" id="chips" role="group" aria-label="Seasons"></div>
-  </div>
-  <p class="mfoot">&copy; 2026 Cloud Cinder Technology</p>
-</aside>
+</header>
+<div class="scrim" id="scrim"></div>
 <div class="hint" aria-hidden="true"><span>Scroll</span><i></i></div>
 
 <script>
@@ -439,11 +422,14 @@
 </script>
 <script>
 (function () {
-  var menu = document.getElementById('menu'), scrim = document.getElementById('scrim'), burger = document.getElementById('burger');
-  var closeBtn = document.getElementById('mclose'), field = document.getElementById('mfield'), chips = document.getElementById('chips');
+  var bar = document.getElementById('bar'), field = document.getElementById('sfield'), scrim = document.getElementById('scrim');
+  var burger = document.getElementById('burger'), mnav = document.getElementById('mnav');
   var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var W = 1, H = 1, t = 0, last = 0, running = false, isOpen = false, season = 0, saved = null;
+  var W = 1, H = 1, VH = innerHeight, t = 0, last = 0, isOpen = false;
 
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function smooth(v) { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); }
+  function tri(s, c) { return smooth(1 - Math.abs(s - c)); }
   function scatter(index, salt) { var x = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x); }
   function lerp(r, k) { return r[0] + (r[1] - r[0]) * k; }
   function frac(v) { return v - Math.floor(v); }
@@ -462,16 +448,16 @@
     '<circle cx="8.6" cy="9.4" r="1.5" fill="#1F2937"/><circle cx="8.15" cy="8.95" r="0.5" fill="#FFFFFF"/>' +
     '<path d="M8 5.6c1.5-1.1 3.6-1.3 5.2-.5-1.7-.2-3.4.2-4.7 1.2-.5.4-1 0-.5-.7Z" fill="#FDE68A"/></svg>';
   var SEASONS = [
-    { key: 'ocean', label: 'Ocean', emblem: '\u{1F420}', glyphs: ['\u{1F420}'], count: 16, size: [14, 36], duration: [30, 62], drift: 34, opacity: [0.55, 1], motion: 'swim', spin: false, variants: BUTTERFLYFISH },
-    { key: 'summer', label: 'Summer', emblem: 'duck', glyphs: ['duck', '\u{1F6DF}', '\u{1F334}', '\u{1F420}'], count: 12, size: [18, 34], duration: [5, 9], drift: 40, opacity: [0.5, 0.95], motion: 'bob', spin: false },
-    { key: 'autumn', label: 'Autumn', emblem: '\u{1F342}', glyphs: ['\u{1F342}', '\u{1F341}', '\u{1F330}'], count: 20, size: [14, 28], duration: [9, 17], drift: 120, opacity: [0.4, 0.9], motion: 'fall', spin: true },
-    { key: 'winter', label: 'Winter', emblem: '❄️', glyphs: ['❄️', '❅', '❆', '❄️'], count: 34, size: [10, 22], duration: [7, 15], drift: 70, opacity: [0.5, 0.95], motion: 'fall', spin: false }
+    { glyphs: ['\u{1F420}'], count: 16, size: [14, 36], duration: [30, 62], drift: 34, opacity: [0.55, 1], motion: 'swim', spin: false, variants: BUTTERFLYFISH },
+    { glyphs: ['duck', '\u{1F6DF}', '\u{1F334}', '\u{1F420}'], count: 12, size: [18, 34], duration: [5, 9], drift: 40, opacity: [0.5, 0.95], motion: 'bob', spin: false },
+    { glyphs: ['\u{1F342}', '\u{1F341}', '\u{1F330}'], count: 20, size: [14, 28], duration: [9, 17], drift: 120, opacity: [0.4, 0.9], motion: 'fall', spin: true },
+    { glyphs: ['❄️', '❅', '❆', '❄️'], count: 34, size: [10, 22], duration: [7, 15], drift: 70, opacity: [0.5, 0.95], motion: 'fall', spin: false }
   ];
   SEASONS.forEach(function (sp) {
     sp.parts = [];
     for (var i = 0; i < sp.count; i++) {
       var duration = lerp(sp.duration, scatter(i, 3)), swims = sp.motion === 'swim', swayDuration = 4 + scatter(i, 9) * 5;
-      sp.parts.push({
+      var q = {
         glyph: sp.glyphs[i % sp.glyphs.length],
         filter: sp.variants ? sp.variants[Math.floor(scatter(i, 11) * sp.variants.length)] : null,
         reversed: swims && i % 2 === 1,
@@ -481,7 +467,16 @@
         drift: swims ? (0.5 + scatter(i, 6) * 0.5) * sp.drift : (scatter(i, 6) * 2 - 1) * sp.drift,
         spin: sp.spin ? (scatter(i, 8) > 0.5 ? 360 : -360) : 0,
         swayDur: swayDuration, swayDelay: -scatter(i, 10) * swayDuration
-      });
+      };
+      var e = document.createElement('span');
+      e.className = 'pp';
+      if (q.glyph === 'duck') e.innerHTML = DUCK; else e.textContent = q.glyph;
+      e.style.fontSize = q.size.toFixed(1) + 'px';
+      if (q.filter) e.style.filter = q.filter;
+      e.style.display = 'none';
+      field.appendChild(e);
+      q.el = e;
+      sp.parts.push(q);
     }
   });
   function pose(sp, q, tt) {
@@ -499,84 +494,52 @@
     }
     return [x, y, r, flip];
   }
-  function build() {
-    field.textContent = '';
-    SEASONS[season].parts.forEach(function (q) {
-      var e = document.createElement('span');
-      e.className = 'pp';
-      if (q.glyph === 'duck') e.innerHTML = DUCK; else e.textContent = q.glyph;
-      e.style.fontSize = q.size.toFixed(1) + 'px';
-      e.style.opacity = q.opacity.toFixed(2);
-      if (q.filter) e.style.filter = q.filter;
-      field.appendChild(e);
-      q.el = e;
-    });
-    draw();
+  function place(e, o, a) {
+    if (!o) { if (e.style.display !== 'none') e.style.display = 'none'; return; }
+    if (e.style.display === 'none') e.style.display = '';
+    e.style.opacity = a.toFixed(2);
+    e.style.transform = 'translate3d(' + o[0].toFixed(1) + 'px,' + o[1].toFixed(1) + 'px,0) translate(-50%,-50%) rotate(' + o[2].toFixed(2) + 'deg)' + (o[3] < 0 ? ' scaleX(-1)' : '');
   }
-  function draw() {
-    var sp = SEASONS[season];
-    for (var j = 0; j < sp.parts.length; j++) {
-      var q = sp.parts[j], o = pose(sp, q, t);
-      q.el.style.transform = 'translate3d(' + o[0].toFixed(1) + 'px,' + o[1].toFixed(1) + 'px,0) translate(-50%,-50%) rotate(' + o[2].toFixed(2) + 'deg)' + (o[3] < 0 ? ' scaleX(-1)' : '');
-    }
-  }
-  function tick(now) {
-    if (!isOpen) { running = false; return; }
+  function frame(now) {
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
-    last = now; t += dt; draw();
-    requestAnimationFrame(tick);
+    last = now; t += dt;
+    W = bar.clientWidth; H = bar.clientHeight;
+    var max = Math.max(1, document.documentElement.scrollHeight - VH), s = clamp(scrollY / max, 0, 1) * 3;
+    for (var i = 0; i < 4; i++) {
+      var sp = SEASONS[i], w = tri(s, i), on = !still && w >= 0.01;
+      for (var j = 0; j < sp.parts.length; j++) {
+        var q = sp.parts[j], o = on ? pose(sp, q, t) : null;
+        if (o && (o[0] < -60 || o[0] > W + 60 || o[1] < -60 || o[1] > H + 60)) o = null;
+        place(q.el, o, q.opacity * w * 0.72);
+      }
+    }
+    requestAnimationFrame(frame);
   }
-
-  try { saved = localStorage.getItem('cc-season'); } catch (e) { saved = null; }
-  season = -1;
-  SEASONS.forEach(function (sp, i) { if (sp.key === saved) season = i; });
-  if (season < 0) season = Math.floor(Math.random() * SEASONS.length);
-  SEASONS.forEach(function (sp, i) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.innerHTML = '<span class="em" aria-hidden="true">' + (sp.emblem === 'duck' ? DUCK : sp.emblem) + '</span>' + sp.label;
-    b.addEventListener('click', function () {
-      season = i; mark(); if (!still) build();
-      try { localStorage.setItem('cc-season', sp.key); } catch (e) {}
-    });
-    chips.appendChild(b);
-  });
-  function mark() { [].forEach.call(chips.children, function (b, i) { b.setAttribute('aria-pressed', i === season ? 'true' : 'false'); }); }
-  mark();
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) last = 0; });
+  addEventListener('resize', function () { if (Math.abs(innerHeight - VH) > 150 || !VH) VH = innerHeight; if (innerWidth > 760) close(false); });
+  requestAnimationFrame(frame);
 
   function open() {
     if (isOpen) return;
     isOpen = true;
-    menu.removeAttribute('inert'); menu.setAttribute('aria-hidden', 'false');
-    menu.classList.add('open'); scrim.classList.add('on');
-    burger.setAttribute('aria-expanded', 'true');
+    bar.classList.add('open'); scrim.classList.add('on');
+    mnav.removeAttribute('inert'); mnav.setAttribute('aria-hidden', 'false');
+    burger.setAttribute('aria-expanded', 'true'); burger.setAttribute('aria-label', 'Close menu');
     document.documentElement.style.overflow = 'hidden';
-    W = menu.clientWidth; H = menu.clientHeight;
-    if (!still) { if (!field.firstChild) build(); last = 0; if (!running) { running = true; requestAnimationFrame(tick); } }
-    closeBtn.focus({ preventScroll: true });
   }
   function close(back) {
     if (!isOpen) return;
     isOpen = false;
-    menu.classList.remove('open'); scrim.classList.remove('on');
-    menu.setAttribute('aria-hidden', 'true'); menu.setAttribute('inert', '');
-    burger.setAttribute('aria-expanded', 'false');
+    bar.classList.remove('open'); scrim.classList.remove('on');
+    mnav.setAttribute('inert', ''); mnav.setAttribute('aria-hidden', 'true');
+    burger.setAttribute('aria-expanded', 'false'); burger.setAttribute('aria-label', 'Open menu');
     document.documentElement.style.overflow = '';
     if (back) burger.focus({ preventScroll: true });
   }
-  burger.addEventListener('click', open);
-  closeBtn.addEventListener('click', function () { close(true); });
+  burger.addEventListener('click', function () { if (isOpen) close(true); else open(); });
   scrim.addEventListener('click', function () { close(true); });
-  document.addEventListener('keydown', function (e) {
-    if (!isOpen) return;
-    if (e.key === 'Escape') { close(true); return; }
-    if (e.key === 'Tab') {
-      var f = menu.querySelectorAll('button, a[href]'), a = f[0], z = f[f.length - 1];
-      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
-      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
-    }
-  });
-  [].forEach.call(menu.querySelectorAll('nav a'), function (a) {
+  document.addEventListener('keydown', function (e) { if (isOpen && e.key === 'Escape') close(true); });
+  [].forEach.call(bar.querySelectorAll('a[href^="#"]'), function (a) {
     a.addEventListener('click', function (e) {
       var to = document.querySelector(a.getAttribute('href'));
       if (!to) return;
@@ -585,7 +548,6 @@
       try { history.replaceState(null, '', a.getAttribute('href')); } catch (err) {}
     });
   });
-  addEventListener('resize', function () { if (isOpen) { W = menu.clientWidth; H = menu.clientHeight; } });
 })();
 </script>
 </body>
