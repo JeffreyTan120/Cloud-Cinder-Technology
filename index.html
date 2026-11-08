@@ -64,6 +64,46 @@
   header .contact { color: rgba(255,255,255,.85); text-decoration: none; font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
                     border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 10px 18px; transition: border-color .25s, color .25s; }
   header .contact:hover, header .contact:focus-visible { border-color: #fff; color: #fff; }
+  .hright { display: flex; align-items: center; gap: 10px; }
+  .burger { width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(10,12,16,.25); color: #fff;
+            display: grid; place-content: center; gap: 4px; cursor: pointer; padding: 0; transition: border-color .25s; }
+  .burger i { display: block; width: 16px; height: 1.5px; background: currentColor; border-radius: 1px; }
+  .burger:hover, .burger:focus-visible { border-color: #fff; }
+  .scrim { position: fixed; inset: 0; z-index: 39; background: rgba(3,4,7,.5); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+  .menu { position: fixed; top: 0; right: 0; bottom: 0; z-index: 40; width: min(400px, 88vw); display: flex; flex-direction: column;
+          padding: max(22px, env(safe-area-inset-top)) 28px max(24px, env(safe-area-inset-bottom)); overflow: hidden;
+          background: rgba(11,13,18,.74); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
+          border-left: 1px solid rgba(255,255,255,.1); transform: translateX(102%); visibility: hidden;
+          transition: transform .45s cubic-bezier(.2,.8,.2,1), visibility 0s linear .45s; }
+  .menu.open { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+  .menu > *:not(.mfield) { position: relative; z-index: 1; }
+  .mfield { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+            font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; color: #f1f5f9; }
+  .pp { position: absolute; left: 0; top: 0; line-height: 1; user-select: none; will-change: transform; }
+  .mtop { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
+  .mtop .kicker { margin: 0; }
+  .close { width: 48px; height: 48px; margin-right: -6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); background: rgba(10,12,16,.3); color: #fff;
+           display: grid; place-items: center; cursor: pointer; padding: 0; transition: border-color .25s; }
+  .close:hover, .close:focus-visible { border-color: #fff; }
+  .menu nav { margin-top: 5vh; display: flex; flex-direction: column; }
+  .menu nav a { display: flex; align-items: baseline; gap: 16px; padding: 11px 0; color: #fff; text-decoration: none; font-size: 30px; font-weight: 300;
+                letter-spacing: -.015em; text-shadow: 0 1px 18px rgba(4,6,10,.6); transition: opacity .2s; }
+  .menu nav a span { font-size: 11px; font-weight: 500; letter-spacing: .14em; color: rgba(255,255,255,.5); min-width: 20px; }
+  .menu nav:hover a { opacity: .6; }
+  .menu nav a:hover, .menu nav a:focus-visible { opacity: 1; }
+  .mseasons { margin-top: auto; padding-top: 28px; }
+  .mseasons .label { margin-bottom: 14px; }
+  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chips button { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-radius: 14px; cursor: pointer;
+                  border: 1px solid rgba(255,255,255,.18); background: rgba(10,12,16,.35); color: rgba(255,255,255,.85);
+                  font: 500 14px Inter, system-ui, sans-serif; transition: border-color .2s, background .2s; }
+  .chips button .em { font-size: 20px; line-height: 1; width: 22px; display: grid; place-items: center;
+                      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+  .chips button:hover, .chips button:focus-visible { border-color: rgba(255,255,255,.5); }
+  .chips button[aria-pressed="true"] { border-color: #fff; background: rgba(255,255,255,.12); color: #fff; }
+  .mfoot { margin-top: 22px; font-size: 12px; letter-spacing: .08em; color: rgba(255,255,255,.4); }
+  @media (max-height: 560px) { .menu nav a { font-size: 24px; padding: 7px 0; } .menu nav { margin-top: 2vh; } }
   .hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 10px;
           font-size: 10px; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,255,255,.5); opacity: var(--hint); pointer-events: none; }
   .hint i { width: 1px; height: 36px; background: linear-gradient(rgba(255,255,255,.7), rgba(255,255,255,0)); animation: fall 2.4s ease-in-out infinite; }
@@ -89,7 +129,7 @@
     .foot { margin-top: 36px; }
   }
   @media (max-width: 480px) { .brand span { display: none; } }
-  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } #gl { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } #gl, .menu, .menu.open, .scrim { transition: none; } }
 </style>
 </head>
 <body>
@@ -162,8 +202,32 @@
 
 <header>
   <a class="brand" href="#top"><img src="logo.svg" alt=""><span>Cloud Cinder Technology</span></a>
-  <a class="contact" href="#contact">Contact</a>
+  <div class="hright">
+    <a class="contact" href="#contact">Contact</a>
+    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button>
+  </div>
 </header>
+<div class="scrim" id="scrim"></div>
+<aside class="menu" id="menu" aria-label="Menu" aria-hidden="true" inert>
+  <div class="mfield" id="mfield" aria-hidden="true"></div>
+  <div class="mtop">
+    <p class="kicker">Menu</p>
+    <button class="close" id="mclose" type="button" aria-label="Close menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <nav aria-label="Sections">
+    <a href="#top"><span>00</span>Home</a>
+    <a href="#apps"><span>01</span>Our apps</a>
+    <a href="#about"><span>02</span>About us</a>
+    <a href="#contact"><span>03</span>Contact</a>
+  </nav>
+  <div class="mseasons">
+    <p class="label">Seasons</p>
+    <div class="chips" id="chips" role="group" aria-label="Seasons"></div>
+  </div>
+  <p class="mfoot">&copy; 2026 Cloud Cinder Technology</p>
+</aside>
 <div class="hint" aria-hidden="true"><span>Scroll</span><i></i></div>
 
 <script>
@@ -371,6 +435,157 @@
     requestAnimationFrame(frame);
   });
   layout(true);
+})();
+</script>
+<script>
+(function () {
+  var menu = document.getElementById('menu'), scrim = document.getElementById('scrim'), burger = document.getElementById('burger');
+  var closeBtn = document.getElementById('mclose'), field = document.getElementById('mfield'), chips = document.getElementById('chips');
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var W = 1, H = 1, t = 0, last = 0, running = false, isOpen = false, season = 0, saved = null;
+
+  function scatter(index, salt) { var x = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x); }
+  function lerp(r, k) { return r[0] + (r[1] - r[0]) * k; }
+  function frac(v) { return v - Math.floor(v); }
+  function easeInOut(x) {
+    var lo = 0, hi = 1, u = x, k;
+    for (k = 0; k < 16; k++) { u = (lo + hi) / 2; if (3 * u * (1 - u) * (1 - u) * 0.42 + 3 * u * u * (1 - u) * 0.58 + u * u * u < x) lo = u; else hi = u; }
+    return 3 * u * u * (1 - u) + u * u * u;
+  }
+  var BUTTERFLYFISH = ['hue-rotate(-8deg) saturate(1.2)', 'hue-rotate(-24deg) saturate(0.6) brightness(1.25)',
+                       'hue-rotate(-16deg) saturate(0.8) brightness(0.8)', 'hue-rotate(6deg) saturate(0.68) brightness(1.12) contrast(1.2)'];
+  var DUCK = '<svg width="1em" height="1em" viewBox="0 0 32 32" fill="none" aria-hidden="true" style="display:block;overflow:visible">' +
+    '<path d="M27 21c0 4.2-5 7-11.5 7S4 25.2 4 21c0-2.7 2.2-4.5 5.5-4.5h12C24.8 16.5 27 18.3 27 21Z" fill="#FBBF24"/>' +
+    '<path d="M4.4 22.6c1.6 3.2 6 5.4 11.1 5.4s9.5-2.2 11.1-5.4c-1.9 2-6.1 3.4-11.1 3.4S6.3 24.6 4.4 22.6Z" fill="#F59E0B"/>' +
+    '<circle cx="10.5" cy="11" r="7" fill="#FBBF24"/>' +
+    '<path d="M3.9 11.2 0 12.8l3.9 2.1c.9-1.2.9-2.9 0-4.1Z" fill="#F97316"/>' +
+    '<circle cx="8.6" cy="9.4" r="1.5" fill="#1F2937"/><circle cx="8.15" cy="8.95" r="0.5" fill="#FFFFFF"/>' +
+    '<path d="M8 5.6c1.5-1.1 3.6-1.3 5.2-.5-1.7-.2-3.4.2-4.7 1.2-.5.4-1 0-.5-.7Z" fill="#FDE68A"/></svg>';
+  var SEASONS = [
+    { key: 'ocean', label: 'Ocean', emblem: '\u{1F420}', glyphs: ['\u{1F420}'], count: 16, size: [14, 36], duration: [30, 62], drift: 34, opacity: [0.55, 1], motion: 'swim', spin: false, variants: BUTTERFLYFISH },
+    { key: 'summer', label: 'Summer', emblem: 'duck', glyphs: ['duck', '\u{1F6DF}', '\u{1F334}', '\u{1F420}'], count: 12, size: [18, 34], duration: [5, 9], drift: 40, opacity: [0.5, 0.95], motion: 'bob', spin: false },
+    { key: 'autumn', label: 'Autumn', emblem: '\u{1F342}', glyphs: ['\u{1F342}', '\u{1F341}', '\u{1F330}'], count: 20, size: [14, 28], duration: [9, 17], drift: 120, opacity: [0.4, 0.9], motion: 'fall', spin: true },
+    { key: 'winter', label: 'Winter', emblem: '❄️', glyphs: ['❄️', '❅', '❆', '❄️'], count: 34, size: [10, 22], duration: [7, 15], drift: 70, opacity: [0.5, 0.95], motion: 'fall', spin: false }
+  ];
+  SEASONS.forEach(function (sp) {
+    sp.parts = [];
+    for (var i = 0; i < sp.count; i++) {
+      var duration = lerp(sp.duration, scatter(i, 3)), swims = sp.motion === 'swim', swayDuration = 4 + scatter(i, 9) * 5;
+      sp.parts.push({
+        glyph: sp.glyphs[i % sp.glyphs.length],
+        filter: sp.variants ? sp.variants[Math.floor(scatter(i, 11) * sp.variants.length)] : null,
+        reversed: swims && i % 2 === 1,
+        left: scatter(i, 1), top: (6 + scatter(i, 5) * 72) / 100,
+        size: lerp(sp.size, scatter(i, 2)), opacity: lerp(sp.opacity, scatter(i, 7)),
+        dur: duration, delay: -scatter(i, 4) * duration,
+        drift: swims ? (0.5 + scatter(i, 6) * 0.5) * sp.drift : (scatter(i, 6) * 2 - 1) * sp.drift,
+        spin: sp.spin ? (scatter(i, 8) > 0.5 ? 360 : -360) : 0,
+        swayDur: swayDuration, swayDelay: -scatter(i, 10) * swayDuration
+      });
+    }
+  });
+  function pose(sp, q, tt) {
+    var f = frac((tt - q.delay) / q.dur), s = q.size, x, y, r = 0, flip = 1;
+    if (sp.motion === 'fall') {
+      x = q.left * W + s / 2 + q.drift * f; y = -48 + s / 2 + (H + 48) * f; r = q.spin * f;
+    } else if (sp.motion === 'swim') {
+      var c = (tt - q.swayDelay) / q.swayDur, n = Math.floor(c), e = easeInOut(n % 2 ? 1 - (c - n) : c - n);
+      x = q.reversed ? -56 + s / 2 + (W + 112) * f : W + 56 - s / 2 - (W + 112) * f;
+      y = q.top * H + s / 2 - q.drift + 2 * q.drift * e; r = -7 + 14 * e;
+      if (q.reversed) { flip = -1; r = -r; }
+    } else {
+      var K = [[0, 0, -4], [0.5, -6, 3], [1, 0, -2], [0.5, -5, 4], [0, 0, -4]], g = Math.floor(f * 4), u = easeInOut(f * 4 - g), a = K[g], b = K[g + 1];
+      x = q.left * W + s / 2 + q.drift * (a[0] + (b[0] - a[0]) * u); y = q.top * H + s / 2 + a[1] + (b[1] - a[1]) * u; r = a[2] + (b[2] - a[2]) * u;
+    }
+    return [x, y, r, flip];
+  }
+  function build() {
+    field.textContent = '';
+    SEASONS[season].parts.forEach(function (q) {
+      var e = document.createElement('span');
+      e.className = 'pp';
+      if (q.glyph === 'duck') e.innerHTML = DUCK; else e.textContent = q.glyph;
+      e.style.fontSize = q.size.toFixed(1) + 'px';
+      e.style.opacity = q.opacity.toFixed(2);
+      if (q.filter) e.style.filter = q.filter;
+      field.appendChild(e);
+      q.el = e;
+    });
+    draw();
+  }
+  function draw() {
+    var sp = SEASONS[season];
+    for (var j = 0; j < sp.parts.length; j++) {
+      var q = sp.parts[j], o = pose(sp, q, t);
+      q.el.style.transform = 'translate3d(' + o[0].toFixed(1) + 'px,' + o[1].toFixed(1) + 'px,0) translate(-50%,-50%) rotate(' + o[2].toFixed(2) + 'deg)' + (o[3] < 0 ? ' scaleX(-1)' : '');
+    }
+  }
+  function tick(now) {
+    if (!isOpen) { running = false; return; }
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now; t += dt; draw();
+    requestAnimationFrame(tick);
+  }
+
+  try { saved = localStorage.getItem('cc-season'); } catch (e) { saved = null; }
+  season = -1;
+  SEASONS.forEach(function (sp, i) { if (sp.key === saved) season = i; });
+  if (season < 0) season = Math.floor(Math.random() * SEASONS.length);
+  SEASONS.forEach(function (sp, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '<span class="em" aria-hidden="true">' + (sp.emblem === 'duck' ? DUCK : sp.emblem) + '</span>' + sp.label;
+    b.addEventListener('click', function () {
+      season = i; mark(); if (!still) build();
+      try { localStorage.setItem('cc-season', sp.key); } catch (e) {}
+    });
+    chips.appendChild(b);
+  });
+  function mark() { [].forEach.call(chips.children, function (b, i) { b.setAttribute('aria-pressed', i === season ? 'true' : 'false'); }); }
+  mark();
+
+  function open() {
+    if (isOpen) return;
+    isOpen = true;
+    menu.removeAttribute('inert'); menu.setAttribute('aria-hidden', 'false');
+    menu.classList.add('open'); scrim.classList.add('on');
+    burger.setAttribute('aria-expanded', 'true');
+    document.documentElement.style.overflow = 'hidden';
+    W = menu.clientWidth; H = menu.clientHeight;
+    if (!still) { if (!field.firstChild) build(); last = 0; if (!running) { running = true; requestAnimationFrame(tick); } }
+    closeBtn.focus({ preventScroll: true });
+  }
+  function close(back) {
+    if (!isOpen) return;
+    isOpen = false;
+    menu.classList.remove('open'); scrim.classList.remove('on');
+    menu.setAttribute('aria-hidden', 'true'); menu.setAttribute('inert', '');
+    burger.setAttribute('aria-expanded', 'false');
+    document.documentElement.style.overflow = '';
+    if (back) burger.focus({ preventScroll: true });
+  }
+  burger.addEventListener('click', open);
+  closeBtn.addEventListener('click', function () { close(true); });
+  scrim.addEventListener('click', function () { close(true); });
+  document.addEventListener('keydown', function (e) {
+    if (!isOpen) return;
+    if (e.key === 'Escape') { close(true); return; }
+    if (e.key === 'Tab') {
+      var f = menu.querySelectorAll('button, a[href]'), a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    }
+  });
+  [].forEach.call(menu.querySelectorAll('nav a'), function (a) {
+    a.addEventListener('click', function (e) {
+      var to = document.querySelector(a.getAttribute('href'));
+      if (!to) return;
+      e.preventDefault(); close(false);
+      to.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+      try { history.replaceState(null, '', a.getAttribute('href')); } catch (err) {}
+    });
+  });
+  addEventListener('resize', function () { if (isOpen) { W = menu.clientWidth; H = menu.clientHeight; } });
 })();
 </script>
 </body>
