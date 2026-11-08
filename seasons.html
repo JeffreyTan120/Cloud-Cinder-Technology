@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Cinder Technology</title>
+<meta name="description" content="Cloud Cinder Technology develops and publishes apps and games.">
+<meta name="theme-color" content="#0b0d10">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /*
+    A dark studio wall with the internal UI's seasonal skins drifting across the whole screen behind the text, one
+    season per screen of scroll, cross-fading: ocean butterflyfish, the summer pool of rubber ducks, autumn leaves,
+    winter snow. The particles are the internal UI's own (seasons.tsx table, ambient.tsx placement, its keyframes),
+    on a field the size of the window.
+    (Earlier versions: the cloud in a glass box is kept as cloud.html; the box and the aquarium are in git history.)
+  */
+  :root { --hint: 1; }
+  * { box-sizing: border-box; }
+  html { background: #0b0d10; color: #eef0f3; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  body { margin: 0; overflow-x: hidden; }
+
+  /* the room */
+  .room { position: fixed; inset: 0; overflow: hidden; }
+  .wall { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 15%, #1b1e24 0%, #0b0d10 70%); }
+  .spot { position: absolute; inset: 0; background: radial-gradient(60% 80% at 50% -8%, rgba(255,255,255,.12), rgba(255,255,255,0) 70%); }
+
+  /* the season particles: the internal UI's spans, in its font stack (Tailwind's sans) and dark-mode text colour (slate-100) */
+  .field, .grain { position: fixed; inset: 0; pointer-events: none; }
+  .field { overflow: hidden; font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; color: #f1f5f9; }
+  .pp { position: absolute; left: 0; top: 0; line-height: 1; user-select: none; will-change: transform; }
+  .grain { opacity: .07; background-repeat: repeat; }
+
+  /* the text */
+  #content { position: relative; z-index: 1; }
+  .page { max-width: 720px; margin: 0 auto; padding: 0 22px; text-align: center; }
+  section { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .kicker, .num, .label { font-size: 11px; font-weight: 500; letter-spacing: .32em; text-transform: uppercase; color: rgba(255,255,255,.55); margin: 0 0 22px; }
+  h1 { font-size: clamp(34px, 5.2vw, 62px); font-weight: 300; letter-spacing: -.025em; line-height: 1.06; margin: 0 0 24px; }
+  h1 b, h2 b { font-weight: 500; }
+  h2 { font-size: clamp(30px, 3.9vw, 48px); font-weight: 300; letter-spacing: -.02em; line-height: 1.1; margin: 0 0 30px; }
+  h3 { font-size: 20px; font-weight: 500; letter-spacing: -.01em; margin: 0 0 10px; }
+  p { margin: 0; }
+  .lead, .cols p, .app p, .contact p { font-size: clamp(16px, 1.35vw, 19px); line-height: 1.6; color: rgba(255,255,255,.72); }
+  .lead { max-width: 46ch; }
+  .app { display: flex; gap: 24px; align-items: flex-start; text-align: left; max-width: 560px; }
+  .app .icon { flex: none; width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 28px; font-weight: 500;
+               border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
+  .tag { display: inline-block; margin-top: 12px; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .links { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; }
+  .links a, .mail { color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); padding-bottom: 2px; transition: border-color .25s; }
+  .links a:hover, .mail:hover { border-color: #fff; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; text-align: left; width: 100%; max-width: 640px; }
+  .cols .label { margin-bottom: 14px; }
+  .mail { font-size: clamp(20px, 2.8vw, 36px); font-weight: 300; letter-spacing: -.01em; display: inline-block; margin-top: 18px; }
+  .foot { margin-top: 90px; font-size: 12px; letter-spacing: .08em; color: rgba(255,255,255,.4); }
+
+  header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; padding: 22px clamp(18px, 3.2vw, 44px); }
+  .brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-size: 12px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+  .brand img { width: 28px; height: 28px; }
+  header .contact { color: rgba(255,255,255,.85); text-decoration: none; font-size: 11px; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
+                    border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 10px 18px; transition: border-color .25s, color .25s; }
+  header .contact:hover { border-color: #fff; color: #fff; }
+  .hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 10px;
+          font-size: 10px; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,255,255,.5); opacity: var(--hint); pointer-events: none; }
+  .hint i { width: 1px; height: 36px; background: linear-gradient(rgba(255,255,255,.7), rgba(255,255,255,0)); animation: fall 2.4s ease-in-out infinite; }
+  @keyframes fall { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 46% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+
+  @media (max-width: 640px) {
+    .app { flex-direction: column; align-items: center; text-align: center; }
+    .links { justify-content: center; }
+    .cols { grid-template-columns: 1fr; gap: 36px; text-align: center; }
+  }
+  @media (max-width: 480px) { .brand span { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .hint i { animation: none; } }
+</style>
+</head>
+<body>
+<div class="room" aria-hidden="true">
+  <div class="wall"></div>
+  <div class="spot"></div>
+</div>
+<div class="field" id="field" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div id="content">
+  <div class="page">
+    <section class="hero" id="top">
+      <div class="inner">
+        <p class="kicker">Cloud Cinder Technology</p>
+        <h1>Apps and games,<br><b>made with care.</b></h1>
+        <p class="lead">A small studio that develops and publishes mobile apps, PC games and software tools,
+          sold through Google Play, Steam and other online stores.</p>
+      </div>
+    </section>
+
+    <section id="apps">
+      <p class="num">01</p>
+      <h2>Our apps</h2>
+      <div class="app">
+        <div class="icon" aria-hidden="true">文</div>
+        <div>
+          <h3>Translator Pro</h3>
+          <p>A translator for text, voice, the camera and your screen, working on your phone.</p>
+          <p><span class="tag">Coming soon to Google Play</span></p>
+          <p class="links">
+            <a href="https://jeffreytan120.github.io/privacy">Privacy Policy</a>
+            <a href="https://jeffreytan120.github.io/privacy-ms">Dasar Privasi</a>
+            <a href="https://jeffreytan120.github.io/terms">Terms of Use</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <p class="num">02</p>
+      <h2>About us</h2>
+      <div class="cols">
+        <div>
+          <p class="label">Build</p>
+          <h3>What we do</h3>
+          <p>Development and publishing of software: mobile applications, PC and console games, web applications and tools.</p>
+        </div>
+        <div>
+          <p class="label">Publish</p>
+          <h3>Where to find us</h3>
+          <p>Our apps and games are published on Google Play, Steam and other online stores.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <p class="num">03</p>
+      <h2>Contact</h2>
+      <p>Questions, support or business enquiries:</p>
+      <a class="mail" href="mailto:cosmicbunny880@gmail.com">cosmicbunny880@gmail.com</a>
+      <p class="foot">&copy; 2026 Cloud Cinder Technology. All rights reserved.</p>
+    </section>
+  </div>
+</div>
+
+<header>
+  <a class="brand" href="#top"><img src="logo.svg" alt=""><span>Cloud Cinder Technology</span></a>
+  <a class="contact" href="#contact">Contact</a>
+</header>
+<div class="hint" aria-hidden="true"><span>Scroll</span><i></i></div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var W = 1, H = 1, t = 0, last = 0;
+
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function smooth(v) { v = clamp(v, 0, 1); return v * v * (3 - 2 * v); }
+  function tri(s, c) { return smooth(1 - Math.abs(s - c)); }
+  function frac(v) { return v - Math.floor(v); }
+
+  // The four seasons, one per screen of scroll: ocean, summer, autumn, winter. All of it is the internal UI's seasonal
+  // skins (internal-ui/src/seasons) as they are: the particle table from seasons.tsx, the placement from ambient.tsx
+  // (the same scatter() and salts), the motion of its pp-swim / pp-sway / pp-bob / pp-fall keyframes (styles.css) and
+  // the rubber duck from sprites.tsx. The field is the window.
+  function scatter(index, salt) { var x = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x); }
+  function lerp(r, k) { return r[0] + (r[1] - r[0]) * k; }
+  function easeInOut(x) {                                  // CSS ease-in-out: cubic-bezier(.42, 0, .58, 1)
+    var lo = 0, hi = 1, u = x, k;
+    for (k = 0; k < 16; k++) { u = (lo + hi) / 2; if (3 * u * (1 - u) * (1 - u) * 0.42 + 3 * u * u * (1 - u) * 0.58 + u * u * u < x) lo = u; else hi = u; }
+    return 3 * u * u * (1 - u) + u * u * u;
+  }
+
+  // seasons.tsx: BUTTERFLYFISH (raccoon, copperband, Klein's, triangle) and the four skins' particle specs
+  var BUTTERFLYFISH = ['hue-rotate(-8deg) saturate(1.2)', 'hue-rotate(-24deg) saturate(0.6) brightness(1.25)',
+                       'hue-rotate(-16deg) saturate(0.8) brightness(0.8)', 'hue-rotate(6deg) saturate(0.68) brightness(1.12) contrast(1.2)'];
+  var SEASONS = [
+    { glyphs: ['🐠'], count: 16, size: [14, 36], duration: [30, 62], drift: 34, opacity: [0.55, 1], motion: 'swim', spin: false, variants: BUTTERFLYFISH },  // ocean
+    { glyphs: ['duck', '🛟', '🌴', '🐠'], count: 12, size: [18, 34], duration: [5, 9], drift: 40, opacity: [0.5, 0.95], motion: 'bob', spin: false },     // summer
+    { glyphs: ['🍂', '🍁', '🌰'], count: 20, size: [14, 28], duration: [9, 17], drift: 120, opacity: [0.4, 0.9], motion: 'fall', spin: true },             // autumn
+    { glyphs: ['❄️', '❅', '❆', '❄️'], count: 34, size: [10, 22], duration: [7, 15], drift: 70, opacity: [0.5, 0.95], motion: 'fall', spin: false }       // winter
+  ];
+
+  // ambient.tsx: every particle's values, derived from its index exactly as there
+  SEASONS.forEach(function (sp) {
+    sp.parts = [];
+    for (var i = 0; i < sp.count; i++) {
+      var duration = lerp(sp.duration, scatter(i, 3)), swims = sp.motion === 'swim', swayDuration = 4 + scatter(i, 9) * 5;
+      sp.parts.push({
+        glyph: sp.glyphs[i % sp.glyphs.length],
+        filter: sp.variants ? sp.variants[Math.floor(scatter(i, 11) * sp.variants.length)] : null,
+        reversed: swims && i % 2 === 1,
+        left: scatter(i, 1), top: (6 + scatter(i, 5) * 72) / 100,
+        size: lerp(sp.size, scatter(i, 2)), opacity: lerp(sp.opacity, scatter(i, 7)),
+        dur: duration, delay: -scatter(i, 4) * duration,
+        drift: swims ? (0.5 + scatter(i, 6) * 0.5) * sp.drift : (scatter(i, 6) * 2 - 1) * sp.drift,
+        spin: sp.spin ? (scatter(i, 8) > 0.5 ? 360 : -360) : 0,
+        swayDur: swayDuration, swayDelay: -scatter(i, 10) * swayDuration
+      });
+    }
+  });
+
+  // one particle at time tt, as its CSS animation would place it: the glyph's centre in window px, its turn and its
+  // horizontal flip
+  function pose(sp, q, tt) {
+    var f = frac((tt - q.delay) / q.dur), s = q.size, x, y, r = 0, flip = 1;
+    if (sp.motion === 'fall') {                            // .pp-fall: from 48px above the field to below it, linear
+      x = q.left * W + s / 2 + q.drift * f; y = -48 + s / 2 + (H + 48) * f; r = q.spin * f;
+    } else if (sp.motion === 'swim') {                     // .pp-swim / .pp-swim-rev across, .pp-sway up and down
+      var c = (tt - q.swayDelay) / q.swayDur, n = Math.floor(c), e = easeInOut(n % 2 ? 1 - (c - n) : c - n);
+      x = q.reversed ? -56 + s / 2 + (W + 112) * f : W + 56 - s / 2 - (W + 112) * f;
+      y = q.top * H + s / 2 - q.drift + 2 * q.drift * e; r = -7 + 14 * e;
+      if (q.reversed) { flip = -1; r = -r; }
+    } else {                                               // .pp-bob: four eased keyframes
+      var K = [[0, 0, -4], [0.5, -6, 3], [1, 0, -2], [0.5, -5, 4], [0, 0, -4]], g = Math.floor(f * 4), u = easeInOut(f * 4 - g), a = K[g], b = K[g + 1];
+      x = q.left * W + s / 2 + q.drift * (a[0] + (b[0] - a[0]) * u); y = q.top * H + s / 2 + a[1] + (b[1] - a[1]) * u; r = a[2] + (b[2] - a[2]) * u;
+    }
+    return [x, y, r, flip];
+  }
+
+  // The particles are made the way the internal UI makes them, not drawn: a span each, holding the glyph as text (or
+  // the RubberDuck SVG from sprites.tsx, inline), set in the internal UI's font stack and dark-mode text colour (see
+  // .field), with the particle's font-size, filter and opacity on the span.
+  var DUCK = '<svg width="1em" height="1em" viewBox="0 0 32 32" fill="none" aria-hidden="true" style="display:block;overflow:visible">' +
+    '<path d="M27 21c0 4.2-5 7-11.5 7S4 25.2 4 21c0-2.7 2.2-4.5 5.5-4.5h12C24.8 16.5 27 18.3 27 21Z" fill="#FBBF24"/>' +
+    '<path d="M4.4 22.6c1.6 3.2 6 5.4 11.1 5.4s9.5-2.2 11.1-5.4c-1.9 2-6.1 3.4-11.1 3.4S6.3 24.6 4.4 22.6Z" fill="#F59E0B"/>' +
+    '<circle cx="10.5" cy="11" r="7" fill="#FBBF24"/>' +
+    '<path d="M3.9 11.2 0 12.8l3.9 2.1c.9-1.2.9-2.9 0-4.1Z" fill="#F97316"/>' +
+    '<circle cx="8.6" cy="9.4" r="1.5" fill="#1F2937"/><circle cx="8.15" cy="8.95" r="0.5" fill="#FFFFFF"/>' +
+    '<path d="M8 5.6c1.5-1.1 3.6-1.3 5.2-.5-1.7-.2-3.4.2-4.7 1.2-.5.4-1 0-.5-.7Z" fill="#FDE68A"/></svg>';
+  var field = document.getElementById('field');
+  SEASONS.forEach(function (sp) {
+    sp.parts.forEach(function (q) {
+      var e = document.createElement('span');
+      e.className = 'pp';
+      if (q.glyph === 'duck') e.innerHTML = DUCK; else e.textContent = q.glyph;
+      e.style.fontSize = q.size.toFixed(1) + 'px';
+      if (q.filter) e.style.filter = q.filter;
+      e.style.display = 'none';
+      field.appendChild(e);
+      q.el = e;
+    });
+  });
+
+  function place(e, o, a) {
+    if (!o) { if (e.style.display !== 'none') e.style.display = 'none'; return; }
+    if (e.style.display === 'none') e.style.display = '';
+    e.style.opacity = a.toFixed(2);
+    e.style.transform = 'translate3d(' + o[0].toFixed(1) + 'px,' + o[1].toFixed(1) + 'px,0) translate(-50%,-50%) rotate(' + o[2].toFixed(2) + 'deg)' + (o[3] < 0 ? ' scaleX(-1)' : '');
+  }
+
+  var hint = '';
+  function frame(now) {
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now; t += dt;
+    var s = clamp(scrollY / H, 0, 3);                      // screens scrolled: fish, ducks, autumn, winter
+    var h = (1 - clamp(s * 2.5, 0, 1)).toFixed(3);
+    if (h !== hint) { hint = h; root.style.setProperty('--hint', h); }
+    for (var i = 0; i < 4; i++) {
+      var sp = SEASONS[i], w = tri(s, i), on = !still && w >= 0.01;   // as in the internal UI, no field under reduced motion
+      for (var j = 0; j < sp.parts.length; j++) {
+        var q = sp.parts[j], o = on ? pose(sp, q, t) : null;
+        if (o && (o[0] < -60 || o[0] > W + 60 || o[1] < -60 || o[1] > H + 60)) o = null;
+        place(q.el, o, q.opacity * w);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  var lastW = 0;
+  function layout(force) {                                 // the phone's address bar is not a resize
+    if (!force && innerWidth === lastW && Math.abs(innerHeight - H) < 150) return;
+    lastW = W = innerWidth; H = innerHeight;
+  }
+  addEventListener('resize', function () { layout(false); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) last = 0; });
+
+  (function () {                                          // film grain, so the dark gradients don't band
+    var c = document.createElement('canvas'); c.width = c.height = 96;
+    var x = c.getContext('2d'), img = x.createImageData(96, 96), d = img.data;
+    for (var i = 0; i < d.length; i += 4) { d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = Math.random() * 48; }
+    x.putImageData(img, 0, 0); document.querySelector('.grain').style.backgroundImage = 'url(' + c.toDataURL() + ')';
+  })();
+
+  layout(true);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
