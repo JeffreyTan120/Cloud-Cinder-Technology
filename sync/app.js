@@ -1,7 +1,7 @@
 import { LINK_LIFE, SIG_LIFE, browserName, linkProof, linkUri, phoneKey, randomToken, roomSig, sameHex, scanFolder, serveChannel } from './core.js';
 
 const params = new URLSearchParams(location.search);
-const DEFAULT_RELAY = 'wss://pulse-relay.cloudcinder.workers.dev';
+const DEFAULT_RELAY = 'wss://sync-relay.cloudcinder.workers.dev';
 const relay = (() => {
   const r = params.get('relay');
   return r && /^wss?:\/\/[A-Za-z0-9.:_-]+$/.test(r) ? r : DEFAULT_RELAY;
@@ -12,7 +12,7 @@ const ICE = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:1
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-const KEY = 'pulse.sync';
+const KEY = 'cc.musicsync';
 let state;
 try {
   state = JSON.parse(localStorage.getItem(KEY));
@@ -28,7 +28,7 @@ save();
 
 function idb(mode, fn) {
   return new Promise((ok, fail) => {
-    const open = indexedDB.open('pulse-sync', 1);
+    const open = indexedDB.open('cc-musicsync', 1);
     open.onupgradeneeded = () => open.result.createObjectStore('kv');
     open.onerror = () => fail(open.error);
     open.onsuccess = () => {
@@ -83,7 +83,7 @@ $('pick').addEventListener('click', async () => {
     if (access === 'granted') return rescan();
   }
   try {
-    const h = await window.showDirectoryPicker({ id: 'pulse-music', mode: 'read', startIn: 'music' });
+    const h = await window.showDirectoryPicker({ id: 'cc-music', mode: 'read', startIn: 'music' });
     folder = h;
     access = 'granted';
     await setFolderHandle(h);
@@ -436,4 +436,4 @@ if (!supported) {
   loadFolder();
 }
 
-window.pulseSync = { state, activity, get list() { return list; }, get link() { return $('qr').dataset.link; }, rescan };
+window.musicSync = { state, activity, get list() { return list; }, get link() { return $('qr').dataset.link; }, rescan };
