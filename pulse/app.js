@@ -223,7 +223,7 @@ async function onGuest(guest, msg) {
         return to(guest, {
           type: 'error',
           code: 'nofolder',
-          error: folder ? 'On your computer, allow the Pulse page to read your music folder.' : 'On your computer, choose your music folder on the Pulse page.',
+          error: folder ? 'On your computer, allow this page to read your music folder.' : 'On your computer, choose your music folder on this page.',
         });
       }
       to(guest, { type: 'welcome', name: state.name });
@@ -382,7 +382,7 @@ function render() {
   $('phonesCard').hidden = phones.length === 0;
   $('readyCard').hidden = phones.length === 0 || !folder || access !== 'granted' || relayState !== 'on';
   const busy = Object.values(activity).some((a) => a.state !== 'done');
-  $('readyText').textContent = busy ? 'Syncing. Keep this tab open until it finishes.' : 'Ready. Tap Sync now in Pulse on your phone.';
+  $('readyText').textContent = busy ? 'Syncing. Keep this tab open until it finishes.' : 'Ready. Tap Sync now in Music Player on your phone.';
   renderPhones();
 }
 
