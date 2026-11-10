@@ -159,7 +159,7 @@ export function serveChannel(dc, source) {
   async function answer(m) {
     if (m.op === 'manifest') {
       const list = await source.manifest();
-      const json = enc.encode(JSON.stringify({ files: list.files, skipped: list.skipped }));
+      const json = enc.encode(JSON.stringify({ files: list.files, skipped: list.skipped, folder: list.folder }));
       await sendBytes(m.id, new Blob([json]).stream(), json.length);
     } else if (m.op === 'file') {
       const f = await source.file(m.path);

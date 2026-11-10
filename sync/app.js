@@ -49,7 +49,7 @@ let scanning = false;
 
 async function loadFolder() {
   if (testFolder) {
-    folder = await navigator.storage.getDirectory();
+    folder = await (await navigator.storage.getDirectory()).getDirectoryHandle('Test music', { create: true });
     access = 'granted';
   } else {
     folder = await getFolderHandle();
@@ -67,6 +67,7 @@ async function rescan() {
     list = await scanFolder(folder, (n) => {
       $('folderInfo').textContent = `Reading the folder… ${n.toLocaleString()} songs so far`;
     });
+    list.folder = folder.name;
   } catch {
     access = 'prompt'; // moved, renamed or no longer allowed
     list = null;
@@ -334,6 +335,7 @@ function endSession(guest, close) {
   render();
 }
 
+const phoneFolder = (name) => (name ?? '').replace(/[\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^\.+/, '').trim().slice(0, 80).trim() || 'From PC';
 const mb = (b) => (b >= 1 << 30 ? `${(b / (1 << 30)).toFixed(1)} GB` : `${Math.round(b / (1 << 20))} MB`);
 
 function ago(t) {
@@ -360,10 +362,10 @@ function render() {
     $('pick').textContent = 'Allow access';
     $('folderNote').hidden = true;
   } else {
-    $('folderName').textContent = testFolder ? 'Test folder' : folder.name;
+    $('folderName').textContent = folder.name;
     $('pick').textContent = 'Change folder';
     if (list && !scanning) {
-      $('folderInfo').textContent = `${list.files.length.toLocaleString()} ${list.files.length === 1 ? 'song' : 'songs'} · ${mb(list.bytes)}`;
+      $('folderInfo').textContent = `${list.files.length.toLocaleString()} ${list.files.length === 1 ? 'song' : 'songs'} · ${mb(list.bytes)} · on the phone: Music/${phoneFolder(list.folder)}`;
       $('folderNote').hidden = list.skipped === 0;
       $('folderNote').textContent =
         list.skipped === 1 ? "1 WMA file is left out: phones can't play it." : `${list.skipped.toLocaleString()} WMA files are left out: phones can't play them.`;
